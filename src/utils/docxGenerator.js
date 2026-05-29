@@ -95,6 +95,96 @@ export async function exportarADocx(documentData) {
             })
           );
 
+          // === LISTA DE TABLAS EN WORD (APA 7) ===
+          const tieneTablas = elementos.some(item => item.tipo === 'tabla');
+          if (tieneTablas) {
+            docElements.push(
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 360, after: 120, line: 480, lineRule: 'auto' },
+                children: [
+                  new TextRun({
+                    text: 'Lista de Tablas',
+                    font: 'Times New Roman',
+                    size: 24,
+                    bold: true,
+                  }),
+                ],
+              })
+            );
+            
+            let tIdx = 0;
+            elementos.forEach(item => {
+              if (item.tipo === 'tabla') {
+                tIdx++;
+                docElements.push(
+                  new Paragraph({
+                    alignment: AlignmentType.LEFT,
+                    spacing: { before: 60, after: 60, line: 360, lineRule: 'auto' },
+                    children: [
+                      new TextRun({
+                        text: `Tabla ${tIdx}. ${item.titulo || 'Tabla sin título'}`,
+                        font: 'Times New Roman',
+                        size: 22,
+                      }),
+                      new TextRun({
+                        text: ' ..................................................................................................................... (Ver en cuerpo del documento)',
+                        font: 'Times New Roman',
+                        size: 18,
+                        color: '888888'
+                      })
+                    ]
+                  })
+                );
+              }
+            });
+          }
+
+          // === LISTA DE FIGURAS EN WORD (APA 7) ===
+          const tieneFiguras = elementos.some(item => item.tipo === 'figura');
+          if (tieneFiguras) {
+            docElements.push(
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 360, after: 120, line: 480, lineRule: 'auto' },
+                children: [
+                  new TextRun({
+                    text: 'Lista de Figuras',
+                    font: 'Times New Roman',
+                    size: 24,
+                    bold: true,
+                  }),
+                ],
+              })
+            );
+            
+            let fIdx = 0;
+            elementos.forEach(item => {
+              if (item.tipo === 'figura') {
+                fIdx++;
+                docElements.push(
+                  new Paragraph({
+                    alignment: AlignmentType.LEFT,
+                    spacing: { before: 60, after: 60, line: 360, lineRule: 'auto' },
+                    children: [
+                      new TextRun({
+                        text: `Figura ${fIdx}. ${item.titulo || 'Figura sin título'}`,
+                        font: 'Times New Roman',
+                        size: 22,
+                      }),
+                      new TextRun({
+                        text: ' ..................................................................................................................... (Ver en cuerpo del documento)',
+                        font: 'Times New Roman',
+                        size: 18,
+                        color: '888888'
+                      })
+                    ]
+                  })
+                );
+              }
+            });
+          }
+
           docElements.push(new Paragraph({ children: [new PageBreak()] }));
         }
       }

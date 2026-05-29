@@ -131,8 +131,13 @@ export default function APA7Preview({
 
   // Calcular números de página estimados y dinámicos para los títulos (Portada = pág 1, Contenidos = pág 2, Texto = pág 3+)
   const headingPages = {};
+  const listTablas = [];
+  const listFiguras = [];
+  
   let currentPage = 3;
   let currentParagraphCount = 0;
+  let figureCounterNum = 0;
+  let tableCounterNum = 0;
   
   elementos.forEach((el) => {
     if (['titulo1', 'titulo2', 'titulo3'].includes(el.tipo)) {
@@ -142,8 +147,21 @@ export default function APA7Preview({
       if (currentParagraphCount > 0 && currentParagraphCount % 4 === 0) {
         currentPage++;
       }
-    } else if (el.tipo === 'figura' || el.tipo === 'tabla') {
-      // Las figuras y tablas físicas ocupan un espacio sustancial, lo que incrementa el conteo de página estimado
+    } else if (el.tipo === 'figura') {
+      figureCounterNum++;
+      listFiguras.push({
+        numero: figureCounterNum,
+        titulo: el.titulo || 'Figura sin título',
+        pagina: currentPage
+      });
+      currentPage++;
+    } else if (el.tipo === 'tabla') {
+      tableCounterNum++;
+      listTablas.push({
+        numero: tableCounterNum,
+        titulo: el.titulo || 'Tabla sin título',
+        pagina: currentPage
+      });
       currentPage++;
     }
   });
@@ -590,6 +608,81 @@ export default function APA7Preview({
                                       </div>
                                     );
                                   })
+                                )}
+                                {/* --- LISTA DE TABLAS (APA 7) --- */}
+                                {listTablas.length > 0 && (
+                                  <div style={{ marginTop: '2em' }}>
+                                    <h2 style={{ fontSize: '11pt', fontWeight: 'bold', borderBottom: '1px solid #ddd', paddingBottom: '4px', marginBottom: '8px', textIndent: 0 }}>Lista de Tablas</h2>
+                                    {listTablas.map((tableItem) => (
+                                      <div 
+                                        key={tableItem.numero} 
+                                        className="paper-toc-row" 
+                                        style={{ 
+                                          display: 'flex', 
+                                          justifyContent: 'space-between', 
+                                          alignItems: 'flex-end', 
+                                          paddingLeft: '0cm',
+                                          fontWeight: 'normal',
+                                          textIndent: 0,
+                                          marginBottom: '6px',
+                                          fontSize: '10.5pt'
+                                        }}
+                                      >
+                                        <span className="toc-title" style={{ background: 'white', paddingRight: '4px', zIndex: 2 }}>
+                                          Tabla {tableItem.numero}. {tableItem.titulo}
+                                        </span>
+                                        <span className="toc-dots" style={{ 
+                                          flex: 1, 
+                                          borderBottom: '2px dotted #000000', 
+                                          margin: '0 6px', 
+                                          position: 'relative', 
+                                          bottom: '4px', 
+                                          zIndex: 1 
+                                        }}></span>
+                                        <span className="toc-page" style={{ background: 'white', paddingLeft: '4px', zIndex: 2 }}>
+                                          {tableItem.pagina}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* --- LISTA DE FIGURAS (APA 7) --- */}
+                                {listFiguras.length > 0 && (
+                                  <div style={{ marginTop: '2em' }}>
+                                    <h2 style={{ fontSize: '11pt', fontWeight: 'bold', borderBottom: '1px solid #ddd', paddingBottom: '4px', marginBottom: '8px', textIndent: 0 }}>Lista de Figuras</h2>
+                                    {listFiguras.map((figureItem) => (
+                                      <div 
+                                        key={figureItem.numero} 
+                                        className="paper-toc-row" 
+                                        style={{ 
+                                          display: 'flex', 
+                                          justifyContent: 'space-between', 
+                                          alignItems: 'flex-end', 
+                                          paddingLeft: '0cm',
+                                          fontWeight: 'normal',
+                                          textIndent: 0,
+                                          marginBottom: '6px',
+                                          fontSize: '10.5pt'
+                                        }}
+                                      >
+                                        <span className="toc-title" style={{ background: 'white', paddingRight: '4px', zIndex: 2 }}>
+                                          Figura {figureItem.numero}. {figureItem.titulo}
+                                        </span>
+                                        <span className="toc-dots" style={{ 
+                                          flex: 1, 
+                                          borderBottom: '2px dotted #000000', 
+                                          margin: '0 6px', 
+                                          position: 'relative', 
+                                          bottom: '4px', 
+                                          zIndex: 1 
+                                        }}></span>
+                                        <span className="toc-page" style={{ background: 'white', paddingLeft: '4px', zIndex: 2 }}>
+                                          {figureItem.pagina}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
 

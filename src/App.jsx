@@ -27,6 +27,7 @@ import {
 
 function App() {
   const [draftText, setDraftText] = useState('');
+  const [imagenes, setImagenes] = useState({});
   const [documentos, setDocumentos] = useState([]);
   const [selectedDocId, setSelectedDocId] = useState('');
   
@@ -37,14 +38,51 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showTOC, setShowTOC] = useState(true);
 
+  // Extrae de forma transparente los metadatos serializados de imágenes al cargar un borrador
+  const procesarTextoEntrante = (textoRaw) => {
+    if (!textoRaw) return { cleanText: '', imgs: {} };
+    const regexMeta = /\n\n\[ImagenesMeta\]\s*(\{.*\})\s*$/s;
+    const match = textoRaw.match(regexMeta);
+    if (match) {
+      try {
+        const imgs = JSON.parse(match[1]);
+        const cleanText = textoRaw.replace(regexMeta, '');
+        return { cleanText, imgs };
+      } catch (e) {
+        console.error("Error al procesar ImagenesMeta entrante:", e);
+      }
+    }
+    return { cleanText: textoRaw, imgs: {} };
+  };
+
+  // Anexa de forma transparente los metadatos serializados de imágenes al guardar/exportar un borrador
+  const prepararTextoSalida = (textoClean, imgs) => {
+    if (!textoClean) return '';
+    if (!imgs || Object.keys(imgs).length === 0) return textoClean;
+    return textoClean.trim() + "\n\n[ImagenesMeta] " + JSON.stringify(imgs);
+  };
+
   // Parsea el texto en tiempo real para la vista previa
   const elementosFormateados = parsearTextoAPA(draftText);
+
+  // Mapeamos los elementos para resolver en caliente los placeholders de imagen a base64 real
+  const elementosConImagenes = elementosFormateados.map(el => {
+    if (el.tipo === 'figura' && el.base64 && imagenes[el.base64]) {
+      return {
+        ...el,
+        base64: imagenes[el.base64]
+      };
+    }
+    return el;
+  });
 
   // Cargar lista de documentos al montar
   useEffect(() => {
     cargarDocumentosSupabase();
     // Iniciar con la plantilla de ejemplo por defecto para ilustrar el formato de inmediato
-    setDraftText(obtenerTextoEjemploAPA());
+    const { cleanText, imgs } = procesarTextoEntrante(obtenerTextoEjemploAPA());
+    setDraftText(cleanText);
+    setImagenes(imgs);
   }, []);
 
   const cargarDocumentosSupabase = async () => {
@@ -66,20 +104,19 @@ function App() {
     setIsSaveLoading(true);
     try {
       // Extraer un título del documento
-      // Intentar buscar el primer elemento tipo 'titulo1' o la primera línea de la portada
       let titulo = 'Borrador Sin Título';
-      const primerTitulo = elementosFormateados.find(el => el.tipo === 'titulo1' || (el.tipo === 'portada' && el.rol === 'titulo'));
+      const primerTitulo = elementosConImagenes.find(el => el.tipo === 'titulo1' || (el.tipo === 'portada' && el.rol === 'titulo'));
       if (primerTitulo && primerTitulo.texto) {
         titulo = primerTitulo.texto.substring(0, 50);
       } else {
-        // Fallback: Tomar la primera línea no vacía
         const lineas = draftText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         if (lineas.length > 0) {
           titulo = lineas[0].replace(/\[.*?\]/g, '').trim().substring(0, 50) || 'Borrador Sin Título';
         }
       }
 
-      const res = await guardarDocumento(selectedDocId, titulo, draftText);
+      const textoSalida = prepararTextoSalida(draftText, imagenes);
+      const res = await guardarDocumento(selectedDocId, titulo, textoSalida);
       if (res) {
         alert(`Documento "${res.titulo}" guardado exitosamente.`);
         setSelectedDocId(res.id);
@@ -97,15 +134,18 @@ function App() {
   const handleSelectDocument = async (id) => {
     setSelectedDocId(id);
     if (!id) {
-      // Si selecciona crear uno nuevo
-      setDraftText(obtenerTextoEjemploAPA());
+      const { cleanText, imgs } = procesarTextoEntrante(obtenerTextoEjemploAPA());
+      setDraftText(cleanText);
+      setImagenes(imgs);
       return;
     }
 
     try {
       const doc = await obtenerDocumento(id);
       if (doc) {
-        setDraftText(doc.contenido || '');
+        const { cleanText, imgs } = procesarTextoEntrante(doc.contenido || '');
+        setDraftText(cleanText);
+        setImagenes(imgs);
       }
     } catch (error) {
       console.error('Error al cargar el documento seleccionado:', error);
@@ -117,6 +157,7 @@ function App() {
     if (draftText && window.confirm('¿Deseas iniciar un borrador nuevo en limpio? Se perderán los cambios locales no guardados.')) {
       setSelectedDocId('');
       setDraftText('');
+      setImagenes({});
     }
   };
 
@@ -140,32 +181,28 @@ function App() {
 
   // Agregar una referencia generada dinámicamente al borrador
   const handleAgregarReferenciaDirecta = (referenciaTexto) => {
-    // Buscar si ya existe la etiqueta [Referencias] en el texto del borrador
     const indexReferencias = draftText.toLowerCase().indexOf('[referencias]');
-    
     if (indexReferencias !== -1) {
-      // Agregar la referencia al final de la sección actual
       setDraftText(prev => prev + '\n' + referenciaTexto);
     } else {
-      // Si no existe, crear la etiqueta [Referencias] y anexar
       setDraftText(prev => prev + '\n\n[Referencias]\n' + referenciaTexto);
     }
   };
 
   // Exportar a DOCX nativo Word
   const handleExportDocx = async () => {
-    if (elementosFormateados.length === 0) return;
+    if (elementosConImagenes.length === 0) return;
 
     try {
       let titulo = 'Documento APA 7';
-      const primerTitulo = elementosFormateados.find(el => el.tipo === 'titulo1' || (el.tipo === 'portada' && el.rol === 'titulo'));
+      const primerTitulo = elementosConImagenes.find(el => el.tipo === 'titulo1' || (el.tipo === 'portada' && el.rol === 'titulo'));
       if (primerTitulo && primerTitulo.texto) {
         titulo = primerTitulo.texto;
       }
 
       await exportarADocx({
         titulo: titulo,
-        elementos: elementosFormateados,
+        elementos: elementosConImagenes,
         showTOC: showTOC
       });
     } catch (error) {
@@ -237,6 +274,8 @@ function App() {
             <DraftInput 
               draftText={draftText}
               setDraftText={setDraftText}
+              imagenes={imagenes}
+              setImagenes={setImagenes}
               onFormatWithAI={handleFormatWithAI}
               onSaveToSupabase={handleSaveToSupabase}
               isAILoading={isAILoading}
@@ -250,7 +289,7 @@ function App() {
 
             {/* Panel Derecho: Visualizador / Vista Previa APA 7 */}
             <APA7Preview 
-              elementos={elementosFormateados}
+              elementos={elementosConImagenes}
               tituloDocumento={selectedDocId ? (documentos.find(d => d.id === selectedDocId)?.titulo || 'Documento APA 7') : 'Borrador Local'}
               onExportDocx={handleExportDocx}
               documentoId={selectedDocId}

@@ -14,6 +14,8 @@ import { obtenerTextoEjemploAPA } from '../utils/apaParser';
 export default function DraftInput({ 
   draftText, 
   setDraftText, 
+  imagenes = {},
+  setImagenes,
   onFormatWithAI, 
   onSaveToSupabase, 
   isAILoading, 
@@ -36,8 +38,17 @@ export default function DraftInput({
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64Data = event.target.result;
-      // Insertar marcador estructurado para la figura
-      const figuraTag = `\n[Figura] Título descriptivo de tu gráfica o imagen | Nota. Aquí se describe detalladamente lo que muestra la figura. | ${base64Data}\n`;
+      // Generar un ID único para la figura
+      const imgId = `figura_${Date.now()}`;
+      
+      // Registrar imagen en el diccionario global
+      setImagenes(prev => ({
+        ...prev,
+        [imgId]: base64Data
+      }));
+
+      // Insertar marcador estructurado ligero con la referencia a la ID
+      const figuraTag = `\n[Figura] Título descriptivo de tu gráfica o imagen | Nota. Aquí se describe detalladamente lo que muestra la figura. | ${imgId}\n`;
       insertMarker(figuraTag);
     };
     reader.readAsDataURL(file);
@@ -104,6 +115,7 @@ Fecha de Entrega
       return;
     }
     setDraftText(obtenerTextoEjemploAPA());
+    setImagenes({}); // Resetear imágenes
   };
 
   // Limpiar texto
@@ -206,6 +218,51 @@ Fecha de Entrega
             </span>
           </label>
         </div>
+
+        {/* Galería Premium de Figuras / Imágenes Cargadas en Miniatura */}
+        {imagenes && Object.keys(imagenes).length > 0 && (
+          <div className="loaded-images-gallery" style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: '#fcfbfa', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '10px 14px', marginBottom: '8px', animation: 'slideDown 0.25s ease-out' }}>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--color-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Plus size={10} style={{ color: '#10b981' }} />
+              Figuras Cargadas en este Documento:
+            </span>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {Object.entries(imagenes).map(([id, base64]) => (
+                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'white', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.06)', flexShrink: 0, position: 'relative' }}>
+                  <img 
+                    src={base64} 
+                    alt={id} 
+                    style={{ width: '40px', height: '30px', objectFit: 'cover', borderRadius: '3px', border: '1px solid rgba(0,0,0,0.08)' }} 
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--accent-blue)' }}>{id}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => insertMarker(`\n[Figura] Título descriptivo de tu gráfica o imagen | Nota descriptiva de la figura. | ${id}\n`)}
+                      style={{ background: 'none', border: 'none', padding: 0, color: '#10b981', fontSize: '9px', fontWeight: '600', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      + Insertar Etiqueta
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('¿Deseas quitar esta imagen de tu biblioteca? Recuerda remover también su etiqueta [Figura] en el texto.')) {
+                        const copia = { ...imagenes };
+                        delete copia[id];
+                        setImagenes(copia);
+                      }
+                    }}
+                    style={{ border: 'none', background: 'none', color: 'var(--color-danger)', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center' }}
+                    title="Eliminar de la biblioteca"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Historial de borradores guardados (si hay) */}
         {documentos && documentos.length > 0 && (

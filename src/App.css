@@ -51,7 +51,7 @@ body {
    1. ENTORNOS DE ESCRITORIO DE MADERA (WOOD DESK BACKGROUND & LAPTOP FRAME)
    ========================================================================== */
 
-/* Contenedor del escritorio */
+/* Contenedor del escritorio (Convertido a Pantalla Completa de borde a borde) */
 .desk-workspace {
   width: 100vw;
   height: 100vh;
@@ -59,106 +59,33 @@ body {
   justify-content: center;
   align-items: center;
   position: relative;
-  background: var(--bg-desk-gradient);
-  padding: 20px;
+  background: var(--bg-app);
+  padding: 0;
   overflow: hidden;
 }
 
-/* Simulación de textura de madera con sombreado */
-.desk-workspace::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(0, 0, 0, 0.15) 1px, transparent 1px);
-  background-size: 100px 100px;
-  opacity: 0.15;
-  pointer-events: none;
+/* Ocultar elementos decorativos y cámara física para la versión de Pantalla Completa */
+.decor-coffee,
+.decor-notebook,
+.laptop-camera {
+  display: none !important;
 }
 
-/* Taza de café desenfocada en el fondo (Detalle estético Premium) */
-.decor-coffee {
-  position: absolute;
-  bottom: -40px;
-  left: -20px;
-  width: 250px;
-  height: 250px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(230, 219, 206, 0.3) 0%, rgba(121, 85, 72, 0.2) 60%, transparent 100%);
-  filter: blur(18px);
-  z-index: 1;
-  pointer-events: none;
-}
-
-.decor-coffee::after {
-  content: '☕';
-  font-size: 80px;
-  position: absolute;
-  top: 60px;
-  left: 80px;
-  opacity: 0.25;
-}
-
-/* Cuaderno de notas desenfocado en el fondo */
-.decor-notebook {
-  position: absolute;
-  top: 40px;
-  right: -50px;
-  width: 200px;
-  height: 280px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-  transform: rotate(15deg);
-  filter: blur(8px);
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Marco de la Laptop (Premium Bezel) */
+/* Marco de la Laptop convertido a Contenedor de Pantalla Completa nativo */
 .laptop-bezel {
-  width: 95%;
-  max-width: 1280px;
-  height: 85%;
-  max-height: 800px;
-  background: #111111;
-  border-radius: 20px;
-  padding: 18px;
-  box-shadow: var(--shadow-window);
+  width: 100% !important;
+  max-width: 100vw !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  background: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
   position: relative;
   display: flex;
   flex-direction: column;
   z-index: 5;
-  border: 3px solid #2d2d2d;
-}
-
-/* Cámara web reflexiva superior */
-.laptop-camera {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #1a1a2e;
-  box-shadow: inset 0 1px 2px rgba(255,255,255,0.4);
-  position: absolute;
-  top: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.laptop-camera::after {
-  content: '';
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: #00bcd4;
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  opacity: 0.5;
+  border: none !important;
 }
 
 /* ==========================================================================

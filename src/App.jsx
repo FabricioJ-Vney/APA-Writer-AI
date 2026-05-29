@@ -35,6 +35,7 @@ function App() {
   const [isSaveLoading, setIsSaveLoading] = useState(false);
   const [isListLoading, setIsListLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showTOC, setShowTOC] = useState(true);
 
   // Parsea el texto en tiempo real para la vista previa
   const elementosFormateados = parsearTextoAPA(draftText);
@@ -164,7 +165,8 @@ function App() {
 
       await exportarADocx({
         titulo: titulo,
-        elementos: elementosFormateados
+        elementos: elementosFormateados,
+        showTOC: showTOC
       });
     } catch (error) {
       console.error('Error al exportar el archivo Word:', error);
@@ -242,6 +244,8 @@ function App() {
               documentos={documentos}
               onSelectDocument={handleSelectDocument}
               selectedDocId={selectedDocId}
+              showTOC={showTOC}
+              setShowTOC={setShowTOC}
             />
 
             {/* Panel Derecho: Visualizador / Vista Previa APA 7 */}
@@ -251,6 +255,7 @@ function App() {
               onExportDocx={handleExportDocx}
               documentoId={selectedDocId}
               onAgregarReferenciaDirecta={handleAgregarReferenciaDirecta}
+              showTOC={showTOC}
             />
 
           </div>

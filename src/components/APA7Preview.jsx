@@ -16,7 +16,8 @@ export default function APA7Preview({
   tituloDocumento, 
   onExportDocx, 
   documentoId,
-  onAgregarReferenciaDirecta
+  onAgregarReferenciaDirecta,
+  showTOC
 }) {
   const [copied, setCopied] = useState(false);
   const [citationInput, setCitationInput] = useState('');
@@ -268,72 +269,90 @@ export default function APA7Preview({
                           </div>
                           
                           {/* --- VISTA PREVIA DEL ÍNDICE DE CONTENIDOS (APA 7) --- */}
-                          <div className="paper-toc-section" style={{ textIndent: 0, paddingLeft: 0, marginBottom: '2em' }}>
-                            <h1 className="paper-heading-1" style={{ marginTop: '0.5em', marginBottom: '1.2em' }}>
-                              Contenidos
-                            </h1>
-                            {elementos.filter(item => ['titulo1', 'titulo2', 'titulo3'].includes(item.tipo)).length === 0 ? (
-                              <div style={{ fontStyle: 'italic', fontSize: '10pt', color: 'var(--color-text-muted)', textAlign: 'center', margin: '20px 0' }}>
-                                [Los títulos que agregues en el editor aparecerán automáticamente en este índice]
-                              </div>
-                            ) : (
-                              elementos.filter(item => ['titulo1', 'titulo2', 'titulo3'].includes(item.tipo)).map((heading, hIdx) => {
-                                let indent = '0cm';
-                                let weight = 'normal';
-                                let style = 'normal';
-                                
-                                if (heading.tipo === 'titulo1') {
-                                  indent = '0cm';
-                                  weight = 'bold';
-                                } else if (heading.tipo === 'titulo2') {
-                                  indent = '0.8cm';
-                                  weight = 'normal';
-                                } else if (heading.tipo === 'titulo3') {
-                                  indent = '1.6cm';
-                                  style = 'italic';
-                                }
-
-                                const pageNum = headingPages[heading.texto] || 3;
-
-                                return (
-                                  <div 
-                                    key={hIdx} 
-                                    className="paper-toc-row" 
-                                    style={{ 
-                                      display: 'flex', 
-                                      justifyContent: 'space-between', 
-                                      alignItems: 'flex-end', 
-                                      paddingLeft: indent,
-                                      fontWeight: weight,
-                                      fontStyle: style,
-                                      textIndent: 0,
-                                      marginBottom: '6px',
-                                      fontSize: '10.5pt'
+                          {showTOC && (
+                            <>
+                              <div className="paper-toc-section" style={{ textIndent: 0, paddingLeft: 0, marginBottom: '2em' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2em', position: 'relative' }}>
+                                  <h1 className="paper-heading-1" style={{ margin: 0, width: '100%', textAlign: 'center' }}>
+                                    Contenidos
+                                  </h1>
+                                  <button 
+                                    type="button" 
+                                    className="btn-text-action font-accent" 
+                                    style={{ position: 'absolute', right: '0cm', fontSize: '9px', padding: '2px 6px', background: 'var(--accent-blue-light)', color: 'var(--accent-blue)', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                                    onClick={() => {
+                                      alert('Índice recalculado e índices de páginas actualizados con las secciones vigentes.');
+                                      window.dispatchEvent(new Event('resize')); // Disparar resize para forzar actualización de layout
                                     }}
+                                    title="Actualizar y recalcular páginas"
                                   >
-                                    <span className="toc-title" style={{ background: 'white', paddingRight: '4px', zIndex: 2 }}>
-                                      {heading.texto}
-                                    </span>
-                                    <span className="toc-dots" style={{ 
-                                      flex: 1, 
-                                      borderBottom: '2px dotted #000000', 
-                                      margin: '0 6px', 
-                                      position: 'relative', 
-                                      bottom: '4px', 
-                                      zIndex: 1 
-                                    }}></span>
-                                    <span className="toc-page" style={{ background: 'white', paddingLeft: '4px', zIndex: 2 }}>
-                                      {pageNum}
-                                    </span>
+                                    Actualizar Índice
+                                  </button>
+                                </div>
+                                {elementos.filter(item => ['titulo1', 'titulo2', 'titulo3'].includes(item.tipo)).length === 0 ? (
+                                  <div style={{ fontStyle: 'italic', fontSize: '10pt', color: 'var(--color-text-muted)', textAlign: 'center', margin: '20px 0' }}>
+                                    [Los títulos que agregues en el editor aparecerán automáticamente en este índice]
                                   </div>
-                                );
-                              })
-                            )}
-                          </div>
+                                ) : (
+                                  elementos.filter(item => ['titulo1', 'titulo2', 'titulo3'].includes(item.tipo)).map((heading, hIdx) => {
+                                    let indent = '0cm';
+                                    let weight = 'normal';
+                                    let style = 'normal';
+                                    
+                                    if (heading.tipo === 'titulo1') {
+                                      indent = '0cm';
+                                      weight = 'bold';
+                                    } else if (heading.tipo === 'titulo2') {
+                                      indent = '0.8cm';
+                                      weight = 'normal';
+                                    } else if (heading.tipo === 'titulo3') {
+                                      indent = '1.6cm';
+                                      style = 'italic';
+                                    }
 
-                          <div className="paper-page-break-indicator">
-                            <span>[Salto de Página Académico]</span>
-                          </div>
+                                    const pageNum = headingPages[heading.texto] || 3;
+
+                                    return (
+                                      <div 
+                                        key={hIdx} 
+                                        className="paper-toc-row" 
+                                        style={{ 
+                                          display: 'flex', 
+                                          justifyContent: 'space-between', 
+                                          alignItems: 'flex-end', 
+                                          paddingLeft: indent,
+                                          fontWeight: weight,
+                                          fontStyle: style,
+                                          textIndent: 0,
+                                          marginBottom: '6px',
+                                          fontSize: '10.5pt'
+                                        }}
+                                      >
+                                        <span className="toc-title" style={{ background: 'white', paddingRight: '4px', zIndex: 2 }}>
+                                          {heading.texto}
+                                        </span>
+                                        <span className="toc-dots" style={{ 
+                                          flex: 1, 
+                                          borderBottom: '2px dotted #000000', 
+                                          margin: '0 6px', 
+                                          position: 'relative', 
+                                          bottom: '4px', 
+                                          zIndex: 1 
+                                        }}></span>
+                                        <span className="toc-page" style={{ background: 'white', paddingLeft: '4px', zIndex: 2 }}>
+                                          {pageNum}
+                                        </span>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+
+                              <div className="paper-page-break-indicator">
+                                <span>[Salto de Página Académico]</span>
+                              </div>
+                            </>
+                          )}
                         </>
                       )}
                     </div>

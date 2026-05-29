@@ -18,7 +18,7 @@ import {
  * @param {Array} documentData.elementos - Array de elementos formateados (portada, títulos, párrafos, referencias).
  */
 export async function exportarADocx(documentData) {
-  const { titulo, elementos } = documentData;
+  const { titulo, elementos, showTOC } = documentData;
   const docElements = [];
 
   // 1. Estructurar los elementos según los tipos
@@ -48,42 +48,44 @@ export async function exportarADocx(documentData) {
         })
       );
 
-      // Si es el último elemento de la portada, agregar un salto de página y la TABLA DE CONTENIDOS
+      // Si es el último elemento de la portada, agregar un salto de página y la TABLA DE CONTENIDOS si está activa
       if (el.esUltimoDePortada) {
         docElements.push(new Paragraph({ children: [new PageBreak()] }));
 
         // === INSERTAR TABLA DE CONTENIDOS AUTOMÁTICA (APA 7) ===
-        // Título "Contenidos" centrado y negrita
-        docElements.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 0, after: 240, line: 480, lineRule: 'auto' },
-            children: [
-              new TextRun({
-                text: 'Contenidos',
-                font: 'Times New Roman',
-                size: 24,
-                bold: true,
-              }),
-            ],
-          })
-        );
+        if (showTOC) {
+          // Título "Contenidos" centrado y negrita
+          docElements.push(
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 0, after: 240, line: 480, lineRule: 'auto' },
+              children: [
+                new TextRun({
+                  text: 'Contenidos',
+                  font: 'Times New Roman',
+                  size: 24,
+                  bold: true,
+                }),
+              ],
+            })
+          );
 
-        // Tabla de contenidos conectada a los estilos Heading 1, 2 y 3
-        docElements.push(
-          new TableOfContents('Contenidos', {
-            hyperlink: true,
-            headingStyleRange: '1-3',
-            stylesWithLevels: {
-              'Heading1': 1,
-              'Heading2': 2,
-              'Heading3': 3,
-            },
-          })
-        );
+          // Tabla de contenidos conectada a los estilos Heading 1, 2 y 3
+          docElements.push(
+            new TableOfContents('Contenidos', {
+              hyperlink: true,
+              headingStyleRange: '1-3',
+              stylesWithLevels: {
+                'Heading1': 1,
+                'Heading2': 2,
+                'Heading3': 3,
+              },
+            })
+          );
 
-        // Salto de página para iniciar el contenido del documento en la página 3
-        docElements.push(new Paragraph({ children: [new PageBreak()] }));
+          // Salto de página para iniciar el contenido del documento en la página 3
+          docElements.push(new Paragraph({ children: [new PageBreak()] }));
+        }
       }
     } 
     // Título de Nivel 1 (Centrado, Negrita, Estilo Heading 1 para TOC)

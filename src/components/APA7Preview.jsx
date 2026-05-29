@@ -15,6 +15,7 @@ export default function APA7Preview({
   elementos, 
   tituloDocumento, 
   onExportDocx, 
+  onExportPdf,
   documentoId,
   onAgregarReferenciaDirecta,
   showTOC,
@@ -171,6 +172,16 @@ export default function APA7Preview({
           >
             {copied ? <Check size={14} className="icon-success" /> : <Copy size={14} />}
             <span>{copied ? 'Copiado' : 'Copiar Texto'}</span>
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-secondary btn-small font-accent" 
+            onClick={onExportPdf}
+            disabled={elementos.length === 0}
+            style={{ border: '1px solid rgba(198, 40, 40, 0.3)', background: 'rgba(198, 40, 40, 0.04)', color: 'var(--color-danger)' }}
+          >
+            <Download size={14} />
+            <span>Guardar PDF</span>
           </button>
           <button 
             type="button" 

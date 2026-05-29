@@ -30,6 +30,7 @@ function App() {
   const [imagenes, setImagenes] = useState({});
   const [documentos, setDocumentos] = useState([]);
   const [selectedDocId, setSelectedDocId] = useState('');
+  const [nombreArchivo, setNombreArchivo] = useState('Mi Trabajo APA 7');
   
   // Loading States
   const [isAILoading, setIsAILoading] = useState(false);
@@ -83,6 +84,7 @@ function App() {
     const { cleanText, imgs } = procesarTextoEntrante(obtenerTextoEjemploAPA());
     setDraftText(cleanText);
     setImagenes(imgs);
+    setNombreArchivo('Plantilla de Investigación APA 7');
   }, []);
 
   const cargarDocumentosSupabase = async () => {
@@ -103,20 +105,8 @@ function App() {
 
     setIsSaveLoading(true);
     try {
-      // Extraer un título del documento
-      let titulo = 'Borrador Sin Título';
-      const primerTitulo = elementosConImagenes.find(el => el.tipo === 'titulo1' || (el.tipo === 'portada' && el.rol === 'titulo'));
-      if (primerTitulo && primerTitulo.texto) {
-        titulo = primerTitulo.texto.substring(0, 50);
-      } else {
-        const lineas = draftText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        if (lineas.length > 0) {
-          titulo = lineas[0].replace(/\[.*?\]/g, '').trim().substring(0, 50) || 'Borrador Sin Título';
-        }
-      }
-
       const textoSalida = prepararTextoSalida(draftText, imagenes);
-      const res = await guardarDocumento(selectedDocId, titulo, textoSalida);
+      const res = await guardarDocumento(selectedDocId, nombreArchivo, textoSalida);
       if (res) {
         alert(`Documento "${res.titulo}" guardado exitosamente.`);
         setSelectedDocId(res.id);
@@ -137,6 +127,7 @@ function App() {
       const { cleanText, imgs } = procesarTextoEntrante(obtenerTextoEjemploAPA());
       setDraftText(cleanText);
       setImagenes(imgs);
+      setNombreArchivo('Borrador Nuevo APA 7');
       return;
     }
 
@@ -146,6 +137,7 @@ function App() {
         const { cleanText, imgs } = procesarTextoEntrante(doc.contenido || '');
         setDraftText(cleanText);
         setImagenes(imgs);
+        setNombreArchivo(doc.titulo || 'Borrador Sin Título');
       }
     } catch (error) {
       console.error('Error al cargar el documento seleccionado:', error);
@@ -158,6 +150,7 @@ function App() {
       setSelectedDocId('');
       setDraftText('');
       setImagenes({});
+      setNombreArchivo('Mi Trabajo APA 7');
     }
   };
 
@@ -194,14 +187,8 @@ function App() {
     if (elementosConImagenes.length === 0) return;
 
     try {
-      let titulo = 'Documento APA 7';
-      const primerTitulo = elementosConImagenes.find(el => el.tipo === 'titulo1' || (el.tipo === 'portada' && el.rol === 'titulo'));
-      if (primerTitulo && primerTitulo.texto) {
-        titulo = primerTitulo.texto;
-      }
-
       await exportarADocx({
-        titulo: titulo,
+        titulo: nombreArchivo,
         elementos: elementosConImagenes,
         showTOC: showTOC
       });
@@ -209,6 +196,15 @@ function App() {
       console.error('Error al exportar el archivo Word:', error);
       alert('Error al generar el archivo .docx.');
     }
+  };
+
+  // Abrir cuadro de diálogo de impresión y exportar como PDF con su nombre
+  const handleExportPdf = () => {
+    if (elementosConImagenes.length === 0) return;
+    const originalTitle = document.title;
+    document.title = nombreArchivo;
+    window.print();
+    document.title = originalTitle;
   };
 
   const isSupabaseOnline = !!supabase;
@@ -276,6 +272,8 @@ function App() {
               setDraftText={setDraftText}
               imagenes={imagenes}
               setImagenes={setImagenes}
+              nombreArchivo={nombreArchivo}
+              setNombreArchivo={setNombreArchivo}
               onFormatWithAI={handleFormatWithAI}
               onSaveToSupabase={handleSaveToSupabase}
               isAILoading={isAILoading}
@@ -290,8 +288,9 @@ function App() {
             {/* Panel Derecho: Visualizador / Vista Previa APA 7 */}
             <APA7Preview 
               elementos={elementosConImagenes}
-              tituloDocumento={selectedDocId ? (documentos.find(d => d.id === selectedDocId)?.titulo || 'Documento APA 7') : 'Borrador Local'}
+              tituloDocumento={nombreArchivo}
               onExportDocx={handleExportDocx}
+              onExportPdf={handleExportPdf}
               documentoId={selectedDocId}
               onAgregarReferenciaDirecta={handleAgregarReferenciaDirecta}
               showTOC={showTOC}

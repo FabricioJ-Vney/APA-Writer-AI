@@ -16,6 +16,8 @@ export default function DraftInput({
   setDraftText, 
   imagenes = {},
   setImagenes,
+  nombreArchivo,
+  setNombreArchivo,
   onFormatWithAI, 
   onSaveToSupabase, 
   isAILoading, 
@@ -149,9 +151,30 @@ Fecha de Entrega
   return (
     <div className="panel-izquierdo">
       <div className="panel-header">
-        <div className="title-area">
-          <span className="app-subtitle">Panel de Escritura</span>
-          <h2 className="panel-title">Draft Input</h2>
+        <div className="title-area" style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '65%' }}>
+          <span className="app-subtitle">Nombre del Archivo / Documento</span>
+          <input 
+            type="text" 
+            className="document-title-input font-accent"
+            value={nombreArchivo} 
+            onChange={(e) => setNombreArchivo(e.target.value)}
+            placeholder="Escribe el nombre de tu archivo..."
+            style={{
+              background: 'transparent',
+              border: 'none',
+              borderBottom: '1px solid transparent',
+              fontSize: '18px',
+              fontWeight: '700',
+              color: 'var(--color-text-main)',
+              outline: 'none',
+              padding: '2px 0',
+              width: '100%',
+              transition: 'all 0.2s'
+            }}
+            onFocus={(e) => e.target.style.borderBottom = '1px solid var(--accent-blue)'}
+            onBlur={(e) => e.target.style.borderBottom = '1px solid transparent'}
+            title="Haz clic para renombrar tu archivo"
+          />
         </div>
         <div className="panel-actions-header">
           <button 

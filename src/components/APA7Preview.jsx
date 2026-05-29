@@ -111,6 +111,9 @@ export default function APA7Preview({
       if (currentParagraphCount > 0 && currentParagraphCount % 4 === 0) {
         currentPage++;
       }
+    } else if (el.tipo === 'figura' || el.tipo === 'tabla') {
+      // Las figuras y tablas físicas ocupan un espacio sustancial, lo que incrementa el conteo de página estimado
+      currentPage++;
     }
   });
 
@@ -252,7 +255,10 @@ export default function APA7Preview({
               <div className="paper-page-number">1</div>
 
               {/* Contenido del papel */}
-              {elementos.map((el, i) => {
+              {(() => {
+                let figureCounter = 0;
+                let tableCounter = 0;
+                return elementos.map((el, i) => {
                 // Si el elemento es portada
                 if (el.tipo === 'portada') {
                   const esTitulo = el.rol === 'titulo';
@@ -261,7 +267,7 @@ export default function APA7Preview({
                       key={i} 
                       className={`paper-portada-item ${esTitulo ? 'portada-titulo' : ''}`}
                     >
-                      {el.texto}
+                      {el.texto || '\u00A0'}
                       {el.esUltimoDePortada && (
                         <>
                           <div className="paper-page-break-indicator">
@@ -359,6 +365,104 @@ export default function APA7Preview({
                   );
                 }
 
+                // Figuras (Imágenes/Gráficos APA 7)
+                if (el.tipo === 'figura') {
+                  figureCounter++;
+                  return (
+                    <div key={i} className="paper-figure-container" style={{ textIndent: 0, paddingLeft: 0, marginTop: '1.5em', marginBottom: '1.5em', textAlign: 'left' }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Figura {figureCounter}</div>
+                      <div style={{ fontStyle: 'italic', marginBottom: '12px' }}>{el.titulo}</div>
+                      {el.base64 ? (
+                        <div style={{ textAlign: 'center', background: '#faf9f6', padding: '10px', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.03)' }}>
+                          <img 
+                            src={el.base64} 
+                            alt={el.titulo} 
+                            style={{ maxWidth: '100%', maxHeight: '350px', objectFit: 'contain', display: 'inline-block' }} 
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '20px', border: '1px dashed #ccc', color: '#888', fontStyle: 'italic', fontSize: '10pt' }}>
+                          [Imagen no cargada]
+                        </div>
+                      )}
+                      {el.nota && (
+                        <div style={{ fontSize: '10pt', marginTop: '8px', lineHeight: '1.5' }}>
+                          <span style={{ fontStyle: 'italic' }}>Nota.</span> {el.nota.replace(/^nota\.\s*/i, '')}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Tablas (APA 7 - Sin líneas verticales, bordes horizontales selectivos)
+                if (el.tipo === 'tabla') {
+                  tableCounter++;
+                  return (
+                    <div key={i} className="paper-table-container" style={{ textIndent: 0, paddingLeft: 0, marginTop: '1.5em', marginBottom: '1.5em', textAlign: 'left' }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Tabla {tableCounter}</div>
+                      <div style={{ fontStyle: 'italic', marginBottom: '12px' }}>{el.titulo}</div>
+                      
+                      <table 
+                        style={{ 
+                          width: '100%', 
+                          borderCollapse: 'collapse', 
+                          fontFamily: 'var(--font-paper)', 
+                          fontSize: '10pt', 
+                          borderTop: '2px solid #000000', 
+                          borderBottom: '2px solid #000000',
+                          marginBottom: '8px',
+                          textIndent: 0
+                        }}
+                      >
+                        {el.encabezados && el.encabezados.length > 0 && (
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #000000' }}>
+                              {el.encabezados.map((header, hIdx) => (
+                                <th 
+                                  key={hIdx} 
+                                  style={{ 
+                                    padding: '8px 12px', 
+                                    textAlign: hIdx === 0 ? 'left' : 'right', 
+                                    fontWeight: 'bold',
+                                    borderBottom: '1px solid #000000'
+                                  }}
+                                >
+                                  {header}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                        )}
+                        {el.filas && el.filas.length > 0 && (
+                          <tbody>
+                            {el.filas.map((fila, rIdx) => (
+                              <tr key={rIdx}>
+                                {fila.map((cell, cIdx) => (
+                                  <td 
+                                    key={cIdx} 
+                                    style={{ 
+                                      padding: '8px 12px', 
+                                      textAlign: cIdx === 0 ? 'left' : 'right'
+                                    }}
+                                  >
+                                    {cell}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        )}
+                      </table>
+
+                      {el.nota && (
+                        <div style={{ fontSize: '10pt', marginTop: '8px', lineHeight: '1.5' }}>
+                          <span style={{ fontStyle: 'italic' }}>Nota.</span> {el.nota.replace(/^nota\.\s*/i, '')}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
                 // Títulos de Nivel 1 (Centrados, Negrita)
                 if (el.tipo === 'titulo1') {
                   return (
@@ -423,7 +527,8 @@ export default function APA7Preview({
                 }
 
                 return null;
-              })}
+                });
+              })()}
             </div>
           </div>
         )}

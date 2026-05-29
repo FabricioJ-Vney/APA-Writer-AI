@@ -26,6 +26,47 @@ export default function DraftInput({
 }) {
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
+  const imageInputRef = useRef(null);
+
+  // Subir y procesar imagen para el bloque de Figura
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Data = event.target.result;
+      // Insertar marcador estructurado para la figura
+      const figuraTag = `\n[Figura] Título descriptivo de tu gráfica o imagen | Nota. Aquí se describe detalladamente lo que muestra la figura. | ${base64Data}\n`;
+      insertMarker(figuraTag);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Resetear
+  };
+
+  // Insertar plantilla de tabla APA 7
+  const handleInsertTable = () => {
+    const plantillaTabla = `\n[Tabla]
+Comparativa de Resultados de Muestra
+Variable | Grupo de Control | Grupo de Intervención
+Ansiedad Previa | 6.54 | 6.58
+Ansiedad Posterior | 6.42 | 3.10
+Nota. Datos simulados del estudio piloto (N = 50).\n`;
+    insertMarker(plantillaTabla);
+  };
+
+  // Insertar plantilla de portada APA 7 delimitada
+  const handleInsertPortada = () => {
+    const plantillaPortada = `[Portada]
+TÍTULO DE TU TRABAJO ACADÉMICO
+Nombre Completo del Autor
+Facultad y Universidad de Procedencia
+Curso: Nombre de la Asignatura
+Nombre del Profesor o Asesor
+Fecha de Entrega
+[Fin Portada]\n`;
+    insertMarker(plantillaPortada);
+  };
 
   // Importar archivo de texto (.txt) o documento Word (.docx)
   const handleImportFile = (e) => {
@@ -120,8 +161,8 @@ export default function DraftInput({
             <span>Guía de Marcadores (Haz clic para insertar):</span>
           </div>
           <div className="markers-grid">
-            <button type="button" className="marker-tag" onClick={() => insertMarker('[Portada]\n')}>
-              <Plus size={12} /> [Portada]
+            <button type="button" className="marker-tag" onClick={handleInsertPortada} style={{ border: '1px solid rgba(43, 87, 154, 0.3)', background: 'rgba(43, 87, 154, 0.05)', color: 'var(--accent-blue)' }}>
+              <Plus size={12} /> + Portada Block
             </button>
             <button type="button" className="marker-tag" onClick={() => insertMarker('[Título] ')}>
               <Plus size={12} /> [Título]
@@ -134,6 +175,12 @@ export default function DraftInput({
             </button>
             <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Párrafo] ')}>
               <Plus size={12} /> [Párrafo]
+            </button>
+            <button type="button" className="marker-tag" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981' }} onClick={() => imageInputRef.current.click()}>
+              <Plus size={12} /> + Figura (Imagen)
+            </button>
+            <button type="button" className="marker-tag" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981' }} onClick={handleInsertTable}>
+              <Plus size={12} /> + Tabla APA 7
             </button>
             <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Referencias]\n')}>
               <Plus size={12} /> [Referencias]
@@ -204,6 +251,13 @@ export default function DraftInput({
               accept=".txt,.docx"
               ref={fileInputRef}
               onChange={handleImportFile}
+              style={{ display: 'none' }}
+            />
+            <input
+              type="file"
+              accept="image/*"
+              ref={imageInputRef}
+              onChange={handleImageUpload}
               style={{ display: 'none' }}
             />
             <button 

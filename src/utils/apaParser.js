@@ -1,7 +1,7 @@
 /**
  * Parsea el texto crudo del borrador (con marcadores) en una estructura JSON de elementos con tipo y formato.
  * @param {string} text - Texto crudo ingresado por el usuario.
- * @returns {Array} Listado de objetos con { tipo, texto, rol, esUltimoDePortada, esPrimeraReferencia }
+ * @returns {Array} Listado de objetos con { tipo, texto, rol, esUltimoDePortada, esPrimeraReferencia, ... }
  */
 export function parsearTextoAPA(text) {
   if (!text || text.trim() === '') {
@@ -19,6 +19,10 @@ export function parsearTextoAPA(text) {
   let isInsidePortada = false;
   let isInsideReferencias = false;
   
+  // Variables de control para el parseo de tablas multi-línea
+  let isInsideTabla = false;
+  let tablaElement = null;
+  
   // Guardamos las líneas de portada temporales para marcar la última
   let portadaIndices = [];
   let firstReferenciaFound = false;
@@ -26,15 +30,48 @@ export function parsearTextoAPA(text) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // Ignorar líneas vacías a menos que estemos en un párrafo acumulativo
-    if (line === '') {
+    // Si estamos parseando una tabla y encontramos una línea vacía, la saltamos
+    if (isInsideTabla && line === '') {
+      continue;
+    }
+    
+    // Si no estamos en tabla y no estamos en portada, saltar líneas vacías generales
+    if (!isInsideTabla && !isInsidePortada && line === '') {
       continue;
     }
 
-    // Identificar cambios de modo por marcadores explícitos
-    if (line.toLowerCase().includes('[portada]')) {
+    // --- DETECTOR DE CIERRE DE TABLA POR NUEVAS ETIQUETAS ---
+    // Si estamos dentro de una tabla y aparece una nueva etiqueta, cerramos la tabla antes de seguir
+    const isNewUrlTag = line.startsWith('[') && (
+      line.toLowerCase().includes('[portada]') ||
+      line.toLowerCase().includes('[referencias]') ||
+      line.toLowerCase().includes('[título]') ||
+      line.toLowerCase().includes('[titulo]') ||
+      line.toLowerCase().includes('[subtítulo]') ||
+      line.toLowerCase().includes('[subtitulo]') ||
+      line.toLowerCase().includes('[subsección]') ||
+      line.toLowerCase().includes('[subseccion]') ||
+      line.toLowerCase().includes('[párrafo]') ||
+      line.toLowerCase().includes('[parrafo]') ||
+      line.toLowerCase().includes('[figura]') ||
+      line.toLowerCase().includes('[tabla]')
+    );
+
+    if (isInsideTabla && isNewUrlTag) {
+      elements.push(tablaElement);
+      isInsideTabla = false;
+      tablaElement = null;
+    }
+
+    // --- PARSEAR CAMBIOS DE MODO POR MARCADORES EXPLÍCITOS ---
+    if (line.toLowerCase().includes('[portada]') || line.toLowerCase().includes('[inicio portada]')) {
       isInsidePortada = true;
       isInsideReferencias = false;
+      continue;
+    }
+
+    if (line.toLowerCase().includes('[fin portada]') || line.toLowerCase().includes('[/portada]')) {
+      isInsidePortada = false;
       continue;
     }
 
@@ -44,7 +81,61 @@ export function parsearTextoAPA(text) {
       continue;
     }
 
-    // Identificar marcadores de títulos amigables
+    // --- INICIAR PARSEO DE TABLA ---
+    if (line.toLowerCase().startsWith('[tabla]')) {
+      isInsidePortada = false;
+      isInsideTabla = true;
+      tablaElement = {
+        tipo: 'tabla',
+        titulo: '',
+        encabezados: [],
+        filas: [],
+        nota: ''
+      };
+      continue;
+    }
+
+    // --- PROCESAR LÍNEA DENTRO DE TABLA ---
+    if (isInsideTabla) {
+      if (!tablaElement.titulo) {
+        // La primera línea de contenido dentro de la tabla es su título
+        tablaElement.titulo = line;
+      } 
+      else if (line.toLowerCase().startsWith('nota.') || line.toLowerCase().startsWith('nota:')) {
+        // La línea que comienza con "Nota." es la nota al pie de la tabla, y cierra el bloque de tabla
+        tablaElement.nota = line;
+        elements.push(tablaElement);
+        isInsideTabla = false;
+        tablaElement = null;
+      } 
+      else if (line.includes('|')) {
+        // Es una fila de datos (cabecera o registros)
+        const columnas = line.split('|').map(col => col.trim());
+        if (tablaElement.encabezados.length === 0) {
+          tablaElement.encabezados = columnas;
+        } else {
+          tablaElement.filas.push(columnas);
+        }
+      }
+      continue;
+    }
+
+    // --- PARSEAR FIGURAS (IMÁGENES) ---
+    if (line.startsWith('[Figura]') || line.startsWith('[figura]')) {
+      isInsidePortada = false;
+      const textofigura = line.replace(/\[Figura\]/gi, '').trim();
+      const partes = textofigura.split('|').map(p => p.trim());
+      
+      elements.push({
+        tipo: 'figura',
+        titulo: partes[0] || 'Figura sin título',
+        nota: partes[1] || '',
+        base64: partes[2] || ''
+      });
+      continue;
+    }
+
+    // --- PARSEAR TÍTULOS ---
     if (line.startsWith('[Título]') || line.startsWith('[Titulo]') || line.startsWith('[título]') || line.startsWith('[titulo]')) {
       isInsidePortada = false;
       const texto = line.replace(/\[T[ií]tulo\]/gi, '').trim();
@@ -66,14 +157,16 @@ export function parsearTextoAPA(text) {
       continue;
     }
 
-    // Procesar según el modo activo
+    // --- PROCESAR MODO PORTADA O REFERENCIAS ---
     if (isInsidePortada) {
       const index = elements.length;
-      // El primer elemento de la portada suele tratarse como el título en negrita
-      const esPrimerElemento = portadaIndices.length === 0;
+      // Asignar el rol de 'titulo' al primer elemento no vacío que encontremos en la portada
+      const yaHayTitulo = portadaIndices.some(idx => elements[idx].rol === 'titulo' && elements[idx].texto !== '');
+      const esTitulo = !yaHayTitulo && line !== '';
+      
       elements.push({
         tipo: 'portada',
-        rol: esPrimerElemento ? 'titulo' : 'detalle',
+        rol: esTitulo ? 'titulo' : 'detalle',
         texto: line,
         esUltimoDePortada: false
       });
@@ -89,7 +182,6 @@ export function parsearTextoAPA(text) {
     } 
     else {
       // Párrafo estándar
-      // Limpiar marcadores opcionales si el usuario los escribió
       let textoLimpio = line;
       if (line.startsWith('[Párrafo') || line.startsWith('[Parrafo') || line.startsWith('[párrafo') || line.startsWith('[parrafo')) {
         const finMarcador = line.indexOf(']');
@@ -105,7 +197,12 @@ export function parsearTextoAPA(text) {
     }
   }
 
-  // Marcar el último elemento de la portada para que el generador e interfaz apliquen salto de página
+  // Si el texto termina y quedamos con una tabla abierta, la guardamos
+  if (isInsideTabla && tablaElement) {
+    elements.push(tablaElement);
+  }
+
+  // Marcar el último elemento de la portada para salto de página
   if (portadaIndices.length > 0) {
     const ultimoIndex = portadaIndices[portadaIndices.length - 1];
     elements[ultimoIndex].esUltimoDePortada = true;
@@ -118,7 +215,6 @@ export function parsearTextoAPA(text) {
  * Parsea un texto desorganizado/plano detectando automáticamente títulos, párrafos y referencias.
  */
 function parsearTextoHeuristico(text) {
-  // Dividir el texto por líneas en blanco (bloques de párrafos)
   const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(b => b.length > 0);
   const elements = [];
   let titleFound = false;
@@ -127,25 +223,20 @@ function parsearTextoHeuristico(text) {
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
     
-    // 1. El primer párrafo o bloque es asumido como el Título Principal del documento
+    // 1. El primer bloque es el Título Principal
     if (!titleFound) {
       elements.push({ tipo: 'titulo1', texto: block });
       titleFound = true;
       continue;
     }
     
-    // 2. Analizar si el bloque parece un subtítulo:
-    // - Es corto (menos de 75 caracteres)
-    // - Es de una sola línea
-    // - No termina en signos de puntuación de cierre de frase (. ? !)
+    // 2. Detectar si el bloque parece un subtítulo
     const lines = block.split('\n');
     const isShort = block.length < 75;
     const isSingleLine = lines.length === 1;
     const endsWithPunctuation = /[.?!]$/.test(block);
     
-    // 3. Analizar si parece una referencia bibliográfica:
-    // - Está ubicado al final del documento (últimos bloques)
-    // - Contiene un año entre paréntesis: "(2020)" o "(s.f.)" o enlaces "http" / "doi.org"
+    // 3. Detectar si parece una referencia
     const isAtEnd = i >= blocks.length - 3;
     const containsYear = /\((19|20)\d{2}\)/.test(block) || /\(s\.f\.\)/.test(block);
     const looksLikeReference = isAtEnd && (containsYear || block.toLowerCase().includes('http') || block.toLowerCase().includes('doi.org'));
@@ -159,15 +250,12 @@ function parsearTextoHeuristico(text) {
       firstReferenciaFound = true;
     } 
     else if (isShort && isSingleLine && !endsWithPunctuation) {
-      // Es un subtítulo (Nivel 2)
       elements.push({
         tipo: 'titulo2',
         texto: block
       });
     } 
     else {
-      // Párrafo de texto regular
-      // Remover saltos de línea internos para formar un párrafo fluido
       elements.push({
         tipo: 'parrafo',
         texto: block.replace(/\s+/g, ' ')
@@ -189,6 +277,7 @@ Facultad de Ingeniería y Ciencias Aplicadas, Universidad Nacional
 Curso: Metodología de la Investigación (Sección A)
 Dr. Alejandro Rodríguez
 28 de mayo de 2026
+[Fin Portada]
 
 [Título] Formato APA Automático para Documentos
 
@@ -196,7 +285,17 @@ Dr. Alejandro Rodríguez
 
 [Párrafo] El presente documento sirve como ejemplo interactivo para ilustrar el funcionamiento de APA Writer AI. La interfaz de doble panel permite la traducción instantánea de borradores simples en texto académico con riguroso apejo a la séptima edición de las normas APA. Este software integra corrección gramatical inteligente y descarga directa a Microsoft Word.
 
-[Párrafo] De acuerdo con las pautas de APA 7, cada párrafo del cuerpo del texto debe poseer una sangría de media pulgada (equivalente a 1.27 centímetros o 0.5 pulgadas) en su primera línea. Asimismo, el interlineado debe ser exactamente doble, y el documento debe usar fuentes altamente legibles como Times New Roman de 12 puntos o Arial de 11 puntos, garantizando la consistencia formal necesaria en publicaciones de carácter científico.
+[Subtítulo] Ejemplo de Tabla APA 7
+
+[Párrafo] A continuación, se presenta una tabla de ejemplo estructurada de acuerdo a las pautas de APA 7. Notará que carece de líneas verticales y posee bordes horizontales limpios solo arriba y abajo.
+
+[Tabla]
+Comparativa de Resultados de Ansiedad
+Variable | Grupo de Control | Grupo de Intervención
+Ansiedad Previa | 6.54 | 6.58
+Ansiedad Posterior | 6.42 | 3.10
+Reducción Porcentual | 1.83% | 52.88%
+Nota. Datos simulados del estudio piloto (N = 50).
 
 [Subtítulo] Niveles de Títulos
 

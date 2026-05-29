@@ -7,7 +7,8 @@ import {
   Header, 
   PageNumber,
   PageBreak,
-  Footer
+  TableOfContents,
+  HeadingLevel
 } from 'docx';
 
 /**
@@ -47,15 +48,49 @@ export async function exportarADocx(documentData) {
         })
       );
 
-      // Si es el último elemento de la portada, agregar un salto de página
+      // Si es el último elemento de la portada, agregar un salto de página y la TABLA DE CONTENIDOS
       if (el.esUltimoDePortada) {
+        docElements.push(new Paragraph({ children: [new PageBreak()] }));
+
+        // === INSERTAR TABLA DE CONTENIDOS AUTOMÁTICA (APA 7) ===
+        // Título "Contenidos" centrado y negrita
+        docElements.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 0, after: 240, line: 480, lineRule: 'auto' },
+            children: [
+              new TextRun({
+                text: 'Contenidos',
+                font: 'Times New Roman',
+                size: 24,
+                bold: true,
+              }),
+            ],
+          })
+        );
+
+        // Tabla de contenidos conectada a los estilos Heading 1, 2 y 3
+        docElements.push(
+          new TableOfContents('Contenidos', {
+            hyperlink: true,
+            headingStyleRange: '1-3',
+            stylesWithLevels: {
+              'Heading1': 1,
+              'Heading2': 2,
+              'Heading3': 3,
+            },
+          })
+        );
+
+        // Salto de página para iniciar el contenido del documento en la página 3
         docElements.push(new Paragraph({ children: [new PageBreak()] }));
       }
     } 
-    // Título de Nivel 1 (Centrado, Negrita, Capitalizado)
+    // Título de Nivel 1 (Centrado, Negrita, Estilo Heading 1 para TOC)
     else if (el.tipo === 'titulo1') {
       docElements.push(
         new Paragraph({
+          heading: HeadingLevel.HEADING_1,
           alignment: AlignmentType.CENTER,
           spacing: { before: 240, after: 120, line: 480, lineRule: 'auto' },
           keepWithNext: true,
@@ -70,10 +105,11 @@ export async function exportarADocx(documentData) {
         })
       );
     } 
-    // Título de Nivel 2 (Alineado Izquierda, Negrita)
+    // Título de Nivel 2 (Alineado Izquierda, Negrita, Estilo Heading 2 para TOC)
     else if (el.tipo === 'titulo2') {
       docElements.push(
         new Paragraph({
+          heading: HeadingLevel.HEADING_2,
           alignment: AlignmentType.LEFT,
           spacing: { before: 240, after: 120, line: 480, lineRule: 'auto' },
           keepWithNext: true,
@@ -88,10 +124,11 @@ export async function exportarADocx(documentData) {
         })
       );
     } 
-    // Título de Nivel 3 (Alineado Izquierda, Negrita, Cursiva)
+    // Título de Nivel 3 (Alineado Izquierda, Negrita, Cursiva, Estilo Heading 3 para TOC)
     else if (el.tipo === 'titulo3') {
       docElements.push(
         new Paragraph({
+          heading: HeadingLevel.HEADING_3,
           alignment: AlignmentType.LEFT,
           spacing: { before: 240, after: 120, line: 480, lineRule: 'auto' },
           keepWithNext: true,

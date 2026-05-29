@@ -295,6 +295,7 @@ function App() {
               documentoId={selectedDocId}
               onAgregarReferenciaDirecta={handleAgregarReferenciaDirecta}
               showTOC={showTOC}
+              setDraftText={setDraftText}
             />
 
           </div>

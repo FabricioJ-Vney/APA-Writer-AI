@@ -17,13 +17,54 @@ export default function APA7Preview({
   onExportDocx, 
   documentoId,
   onAgregarReferenciaDirecta,
-  showTOC
+  showTOC,
+  setDraftText
 }) {
   const [copied, setCopied] = useState(false);
   const [citationInput, setCitationInput] = useState('');
   const [isCitationLoading, setIsCitationLoading] = useState(false);
   const [generatedRef, setGeneratedRef] = useState(null);
   const [showCitationTool, setShowCitationTool] = useState(false);
+
+  // Estados locales editables en caliente
+  const [editRef, setEditRef] = useState('');
+  const [editParentetica, setEditParentetica] = useState('');
+  const [editNarrativa, setEditNarrativa] = useState('');
+  const [ultimaCitaInsertada, setUltimaCitaInsertada] = useState('');
+  const [seleccionActual, setSeleccionActual] = useState(''); // 'parentetica' | 'narrativa' | ''
+
+  // Inserta texto dinámicamente en el cursor y reemplaza de forma atómica la selección previa
+  const insertAtCursor = (textoAInsertar, reemplazoPrevio = '') => {
+    const textarea = document.querySelector('.draft-textarea');
+    if (!textarea) {
+      setDraftText(prev => prev + ' ' + textoAInsertar);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+
+    let newText;
+    let newStart;
+
+    if (reemplazoPrevio && text.includes(reemplazoPrevio)) {
+      newText = text.replace(reemplazoPrevio, textoAInsertar);
+      newStart = text.indexOf(reemplazoPrevio) + textoAInsertar.length;
+    } else {
+      const before = text.substring(0, start);
+      const after = text.substring(end, text.length);
+      newText = before + textoAInsertar + after;
+      newStart = start + textoAInsertar.length;
+    }
+
+    setDraftText(newText);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = newStart;
+    }, 0);
+  };
 
   // Copiar el texto completo del documento
   const handleCopyText = () => {
@@ -50,30 +91,19 @@ export default function APA7Preview({
 
     setIsCitationLoading(true);
     setGeneratedRef(null);
+    setUltimaCitaInsertada('');
+    setSeleccionActual('');
+
     try {
       const result = await generateCitation(citationInput);
       if (result) {
         setGeneratedRef(result);
         
-        // Si hay un documento activo, guardarla en Supabase vinculada a este documento
-        if (documentoId) {
-          const docIdLimpio = documentoId.startsWith('local_') ? null : documentoId;
-          const refGuardada = await guardarReferencia({
-            documento_id: docIdLimpio || '00000000-0000-0000-0000-000000000000', // ID temporal o de desarrollo
-            autor: result.autor,
-            anio: result.anio,
-            titulo: result.titulo,
-            fuente: result.fuente,
-            doi_url: result.doi_url || '',
-            cita_parentetica: result.cita_parentetica,
-            cita_narrativa: result.cita_narrativa
-          });
-          console.log('Referencia guardada en DB:', refGuardada);
-        }
-
-        // Agregar la referencia al texto actual en la interfaz
-        const refTextoAPA = `${result.autor} (${result.anio}). ${result.titulo}. ${result.fuente}.${result.doi_url ? ' ' + result.doi_url : ''}`;
-        onAgregarReferenciaDirecta(refTextoAPA);
+        // Inicializar campos de edición en caliente
+        const fullRefStr = `${result.autor} (${result.anio}). ${result.titulo}. ${result.fuente}.${result.doi_url ? ' ' + result.doi_url : ''}`;
+        setEditRef(fullRefStr);
+        setEditParentetica(result.cita_parentetica);
+        setEditNarrativa(result.cita_narrativa);
       }
     } catch (error) {
       console.error('Error al generar la cita:', error);
@@ -207,32 +237,230 @@ export default function APA7Preview({
             )}
 
             {generatedRef && (
-              <div className="tool-results animated-fade-in">
-                <div className="ref-result-box">
-                  <div className="ref-label">Referencia Bibliográfica (Añadida al final de tu documento):</div>
-                  <div className="ref-text font-serif">
-                    {generatedRef.autor} ({generatedRef.anio}). <em>{generatedRef.titulo}</em>. {generatedRef.fuente}.{generatedRef.doi_url ? ' ' + generatedRef.doi_url : ''}
+              <div className="tool-results animated-fade-in" style={{ marginTop: '14px', background: '#fcfbfa', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '16px' }}>
+                
+                {/* Referencia Bibliográfica Editable */}
+                <div className="ref-result-box" style={{ marginBottom: '14px' }}>
+                  <div className="ref-label" style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--accent-blue)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Referencia Bibliográfica (Personalizable - Se agregará al final al confirmar):
                   </div>
+                  <textarea
+                    className="ref-textarea-edit font-serif"
+                    value={editRef}
+                    onChange={(e) => setEditRef(e.target.value)}
+                    style={{
+                      width: '100%',
+                      minHeight: '75px',
+                      padding: '10px',
+                      fontSize: '11.5px',
+                      fontFamily: 'var(--font-paper)',
+                      borderRadius: '6px',
+                      border: '1px solid #d1c7bd',
+                      background: 'white',
+                      lineHeight: '1.6',
+                      outline: 'none',
+                      resize: 'vertical',
+                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.04)'
+                    }}
+                  />
                 </div>
-                <div className="citations-copiers">
-                  <div className="copy-cit-box">
-                    <span className="cit-label">Cita Parentética:</span>
-                    <button type="button" className="btn-copy-cit" onClick={handleCopyCitationParentetica}>
-                      <code>{generatedRef.cita_parentetica}</code>
-                      <Copy size={12} />
-                    </button>
-                  </div>
-                  <div className="copy-cit-box">
-                    <span className="cit-label">Cita Narrativa:</span>
-                    <button type="button" className="btn-copy-cit" onClick={handleCopyCitationNarrativa}>
-                      <code>{generatedRef.cita_narrativa}</code>
-                      <Copy size={12} />
-                    </button>
-                  </div>
+
+                {/* Selección y Edición en Tiempo Real de Citas en Texto */}
+                <div className="ref-label" style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--color-text-main)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Selecciona la Cita para Insertar e Intercambiar en tu Texto:
                 </div>
-                <div className="success-toast">
-                  <FileCheck size={14} className="icon-success" />
-                  <span>¡Referencia insertada con éxito en la sección final de Referencias!</span>
+                
+                <div className="citations-copiers" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                  
+                  {/* Cita Parentética */}
+                  <div 
+                    className="copy-cit-box" 
+                    style={{ 
+                      flex: 1, 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '4px',
+                      border: seleccionActual === 'parentetica' ? '2px solid var(--accent-blue)' : '1px solid var(--border-subtle)',
+                      background: seleccionActual === 'parentetica' ? 'var(--accent-blue-light)' : 'white',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      transition: 'all 0.22s ease',
+                      cursor: 'pointer',
+                      boxShadow: seleccionActual === 'parentetica' ? '0 4px 12px rgba(43, 87, 154, 0.08)' : 'none'
+                    }}
+                    onClick={() => {
+                      const prevVal = ultimaCitaInsertada;
+                      insertAtCursor(editParentetica, prevVal);
+                      setUltimaCitaInsertada(editParentetica);
+                      setSeleccionActual('parentetica');
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="cit-label" style={{ fontSize: '10.5px', fontWeight: '700', color: seleccionActual === 'parentetica' ? 'var(--accent-blue)' : 'var(--color-text-muted)' }}>Cita Parentética</span>
+                      <input 
+                        type="radio" 
+                        name="tipo_cita" 
+                        checked={seleccionActual === 'parentetica'}
+                        onChange={() => {}} // Manejado por onClick
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </div>
+                    <input 
+                      type="text"
+                      className="tool-input-edit"
+                      value={editParentetica}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const newVal = e.target.value;
+                        const oldVal = editParentetica;
+                        setEditParentetica(newVal);
+                        if (seleccionActual === 'parentetica') {
+                          insertAtCursor(newVal, oldVal);
+                          setUltimaCitaInsertada(newVal);
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        fontFamily: 'monospace',
+                        border: '1px solid #d1c7bd',
+                        borderRadius: '4px',
+                        outline: 'none',
+                        background: 'white',
+                        marginTop: '6px'
+                      }}
+                    />
+                    <span style={{ fontSize: '9px', color: seleccionActual === 'parentetica' ? 'var(--accent-blue)' : 'var(--color-text-muted)', marginTop: '4px', fontStyle: 'italic' }}>
+                      {seleccionActual === 'parentetica' ? '✓ Insertada y editándose en vivo' : 'Haz clic para insertar'}
+                    </span>
+                  </div>
+
+                  {/* Cita Narrativa */}
+                  <div 
+                    className="copy-cit-box" 
+                    style={{ 
+                      flex: 1, 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '4px',
+                      border: seleccionActual === 'narrativa' ? '2px solid var(--accent-blue)' : '1px solid var(--border-subtle)',
+                      background: seleccionActual === 'narrativa' ? 'var(--accent-blue-light)' : 'white',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      transition: 'all 0.22s ease',
+                      cursor: 'pointer',
+                      boxShadow: seleccionActual === 'narrativa' ? '0 4px 12px rgba(43, 87, 154, 0.08)' : 'none'
+                    }}
+                    onClick={() => {
+                      const prevVal = ultimaCitaInsertada;
+                      insertAtCursor(editNarrativa, prevVal);
+                      setUltimaCitaInsertada(editNarrativa);
+                      setSeleccionActual('narrativa');
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="cit-label" style={{ fontSize: '10.5px', fontWeight: '700', color: seleccionActual === 'narrativa' ? 'var(--accent-blue)' : 'var(--color-text-muted)' }}>Cita Narrativa</span>
+                      <input 
+                        type="radio" 
+                        name="tipo_cita" 
+                        checked={seleccionActual === 'narrativa'}
+                        onChange={() => {}} // Manejado por onClick
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </div>
+                    <input 
+                      type="text"
+                      className="tool-input-edit"
+                      value={editNarrativa}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const newVal = e.target.value;
+                        const oldVal = editNarrativa;
+                        setEditNarrativa(newVal);
+                        if (seleccionActual === 'narrativa') {
+                          insertAtCursor(newVal, oldVal);
+                          setUltimaCitaInsertada(newVal);
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        fontFamily: 'monospace',
+                        border: '1px solid #d1c7bd',
+                        borderRadius: '4px',
+                        outline: 'none',
+                        background: 'white',
+                        marginTop: '6px'
+                      }}
+                    />
+                    <span style={{ fontSize: '9px', color: seleccionActual === 'narrativa' ? 'var(--accent-blue)' : 'var(--color-text-muted)', marginTop: '4px', fontStyle: 'italic' }}>
+                      {seleccionActual === 'narrativa' ? '✓ Insertada y editándose en vivo' : 'Haz clic para insertar'}
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* Botón de Confirmación Definitiva */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', marginTop: '12px' }}>
+                  <span style={{ fontSize: '10px', color: 'var(--color-success)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <FileCheck size={14} /> ¡Cita en texto sincronizada!
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      // 1. Guardar la referencia estructurada en la Base de Datos si hay documento activo
+                      if (documentoId && generatedRef) {
+                        try {
+                          const docIdLimpio = documentoId.startsWith('local_') ? null : documentoId;
+                          await guardarReferencia({
+                            documento_id: docIdLimpio || '00000000-0000-0000-0000-000000000000',
+                            autor: generatedRef.autor,
+                            anio: generatedRef.anio,
+                            titulo: generatedRef.titulo,
+                            fuente: generatedRef.fuente,
+                            doi_url: generatedRef.doi_url || '',
+                            cita_parentetica: editParentetica,
+                            cita_narrativa: editNarrativa
+                          });
+                        } catch (err) {
+                          console.error("Error al guardar referencia al confirmar:", err);
+                        }
+                      }
+                      
+                      // 2. Anexar definitivamente la Referencia Bibliográfica al listado final de referencias
+                      onAgregarReferenciaDirecta(editRef);
+                      
+                      // 3. Cerrar el panel y limpiar estados transitorios
+                      setShowCitationTool(false);
+                      setGeneratedRef(null);
+                      setCitationInput('');
+                      setUltimaCitaInsertada('');
+                      setSeleccionActual('');
+                      
+                      alert("¡Cita y referencia añadidas con éxito al documento!");
+                    }}
+                    style={{
+                      padding: '8px 18px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      background: 'var(--color-success)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 10px rgba(46, 125, 50, 0.15)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <Check size={14} /> Confirmar y Listo
+                  </button>
                 </div>
               </div>
             )}

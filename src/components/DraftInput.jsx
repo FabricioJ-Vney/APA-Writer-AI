@@ -1,0 +1,216 @@
+import React, { useRef } from 'react';
+import { 
+  FileText, 
+  Trash2, 
+  Sparkles, 
+  Save, 
+  BookOpen,
+  HelpCircle,
+  Plus
+} from 'lucide-react';
+import { obtenerTextoEjemploAPA } from '../utils/apaParser';
+
+export default function DraftInput({ 
+  draftText, 
+  setDraftText, 
+  onFormatWithAI, 
+  onSaveToSupabase, 
+  isAILoading, 
+  isSaveLoading,
+  documentos,
+  onSelectDocument,
+  selectedDocId
+}) {
+  const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Importar archivo de texto (.txt)
+  const handleImportFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setDraftText(event.target.result);
+    };
+    reader.readAsText(file);
+    // Resetear input file para poder re-importar el mismo archivo
+    e.target.value = '';
+  };
+
+  // Cargar plantilla de ejemplo
+  const handleLoadExample = () => {
+    if (draftText && !window.confirm('¿Deseas reemplazar el borrador actual con el documento de ejemplo? Se perderán tus cambios no guardados.')) {
+      return;
+    }
+    setDraftText(obtenerTextoEjemploAPA());
+  };
+
+  // Limpiar texto
+  const handleClearText = () => {
+    if (window.confirm('¿Estás seguro de que deseas borrar todo el texto?')) {
+      setDraftText('');
+    }
+  };
+
+  // Insertar marcador en la posición del cursor
+  const insertMarker = (marker) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+
+    const newText = before + marker + after;
+    setDraftText(newText);
+
+    // Reposicionar el cursor después de la inserción
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + marker.length;
+    }, 0);
+  };
+
+  return (
+    <div className="panel-izquierdo">
+      <div className="panel-header">
+        <div className="title-area">
+          <span className="app-subtitle">Panel de Escritura</span>
+          <h2 className="panel-title">Draft Input</h2>
+        </div>
+        <div className="panel-actions-header">
+          <button 
+            type="button" 
+            className="btn-text-action font-accent" 
+            onClick={handleLoadExample}
+            title="Cargar texto de ejemplo listo para APA 7"
+          >
+            <BookOpen size={16} />
+            Cargar Plantilla
+          </button>
+        </div>
+      </div>
+
+      <div className="draft-container">
+        <div className="draft-instructions">
+          <div className="instructions-header">
+            <HelpCircle size={14} className="icon-blue" />
+            <span>Guía de Marcadores (Haz clic para insertar):</span>
+          </div>
+          <div className="markers-grid">
+            <button type="button" className="marker-tag" onClick={() => insertMarker('[Portada]\n')}>
+              <Plus size={12} /> [Portada]
+            </button>
+            <button type="button" className="marker-tag" onClick={() => insertMarker('[Título] ')}>
+              <Plus size={12} /> [Título]
+            </button>
+            <button type="button" className="marker-tag" onClick={() => insertMarker('[Subtítulo] ')}>
+              <Plus size={12} /> [Subtítulo]
+            </button>
+            <button type="button" className="marker-tag" onClick={() => insertMarker('[Subsección] ')}>
+              <Plus size={12} /> [Subsección]
+            </button>
+            <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Párrafo] ')}>
+              <Plus size={12} /> [Párrafo]
+            </button>
+            <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Referencias]\n')}>
+              <Plus size={12} /> [Referencias]
+            </button>
+          </div>
+        </div>
+
+        {/* Historial de borradores guardados (si hay) */}
+        {documentos && documentos.length > 0 && (
+          <div className="documentos-guardados-bar">
+            <label htmlFor="select-doc" className="doc-select-label">Borradores en Supabase:</label>
+            <select
+              id="select-doc"
+              className="doc-select"
+              value={selectedDocId || ''}
+              onChange={(e) => onSelectDocument(e.target.value)}
+            >
+              <option value="">-- Documento Nuevo / Local --</option>
+              {documentos.map((doc) => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.titulo} ({new Date(doc.fecha_actualizacion).toLocaleDateString()})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="textarea-wrapper">
+          <textarea
+            ref={textareaRef}
+            className="draft-textarea"
+            placeholder="[Portada]&#10;TÍTULO DE TU TRABAJO&#10;Tu Nombre&#10;Tu Institución&#10;&#10;[Título] Título Principal&#10;&#10;[Párrafo] Escribe o pega tu borrador aquí. Puedes marcar tu título, subtítulo o subsección con los botones superiores, o simplemente pegar un texto plano desorganizado y la app lo formateará automáticamente en tiempo real."
+            value={draftText}
+            onChange={(e) => setDraftText(e.target.value)}
+            disabled={isAILoading}
+          />
+          {isAILoading && (
+            <div className="glass-loader">
+              <div className="spinner"></div>
+              <p className="loader-text font-accent">Gemini IA está puliendo y corrigiendo tu texto al formato formal APA 7...</p>
+            </div>
+          )}
+        </div>
+
+        <div className="draft-footer-actions">
+          <div className="footer-left-buttons">
+            <input
+              type="file"
+              accept=".txt"
+              ref={fileInputRef}
+              onChange={handleImportFile}
+              style={{ display: 'none' }}
+            />
+            <button 
+              type="button" 
+              className="btn btn-secondary btn-icon"
+              onClick={() => fileInputRef.current.click()}
+              disabled={isAILoading}
+            >
+              <FileText size={16} />
+              <span>Importar Borrador (.txt)</span>
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary btn-icon icon-danger"
+              onClick={handleClearText}
+              disabled={isAILoading || !draftText}
+              title="Borrar todo el texto"
+            >
+              <Trash2 size={16} />
+              <span>Borrar</span>
+            </button>
+          </div>
+
+          <div className="footer-right-buttons">
+            <button 
+              type="button" 
+              className="btn btn-supabase btn-icon"
+              onClick={onSaveToSupabase}
+              disabled={isAILoading || isSaveLoading || !draftText}
+            >
+              <Save size={16} />
+              <span>{isSaveLoading ? 'Guardando...' : 'Guardar en Supabase'}</span>
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-primary btn-icon btn-pulse"
+              onClick={onFormatWithAI}
+              disabled={isAILoading || !draftText}
+            >
+              <Sparkles size={16} />
+              <span>Optimizar con Gemini IA</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

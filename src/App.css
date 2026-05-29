@@ -1,0 +1,1069 @@
+/* ==========================================================================
+   APA WRITER AI (APA Formatter Pro v1.0) - SISTEMA DE DISEÑO PREMIUM CSS
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Times+New+Roman&display=swap');
+
+/* Variables de Color e Identidad */
+:root {
+  --font-ui: 'Outfit', sans-serif;
+  --font-paper: 'Times New Roman', Times, Baskerville, Georgia, serif;
+  
+  /* Paleta Neutra y Acentos */
+  --bg-desk-gradient: radial-gradient(circle at center, #8d5c38 0%, #4a2f1b 100%);
+  --bg-app: #fcfbfa;
+  --bg-panel-header: #f3f0ec;
+  --bg-card: rgba(255, 255, 255, 0.75);
+  
+  --color-text-main: #1e1e1d;
+  --color-text-muted: #6e6e6a;
+  
+  --accent-blue: #2b579a; /* Azul académico clásico de Microsoft Word */
+  --accent-blue-hover: #1f3f72;
+  --accent-blue-light: rgba(43, 87, 154, 0.08);
+  
+  --color-success: #2e7d32;
+  --color-danger: #c62828;
+  
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(43, 87, 154, 0.4);
+  
+  --shadow-premium: 0 12px 40px rgba(0, 0, 0, 0.15);
+  --shadow-sheet: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --shadow-window: 0 30px 70px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+}
+
+body {
+  background: #121212;
+  color: var(--color-text-main);
+  overflow-x: hidden;
+  height: 100vh;
+}
+
+/* ==========================================================================
+   1. ENTORNOS DE ESCRITORIO DE MADERA (WOOD DESK BACKGROUND & LAPTOP FRAME)
+   ========================================================================== */
+
+/* Contenedor del escritorio */
+.desk-workspace {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: var(--bg-desk-gradient);
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* Simulación de textura de madera con sombreado */
+.desk-workspace::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 0, 0, 0.15) 1px, transparent 1px);
+  background-size: 100px 100px;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Taza de café desenfocada en el fondo (Detalle estético Premium) */
+.decor-coffee {
+  position: absolute;
+  bottom: -40px;
+  left: -20px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(230, 219, 206, 0.3) 0%, rgba(121, 85, 72, 0.2) 60%, transparent 100%);
+  filter: blur(18px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.decor-coffee::after {
+  content: '☕';
+  font-size: 80px;
+  position: absolute;
+  top: 60px;
+  left: 80px;
+  opacity: 0.25;
+}
+
+/* Cuaderno de notas desenfocado en el fondo */
+.decor-notebook {
+  position: absolute;
+  top: 40px;
+  right: -50px;
+  width: 200px;
+  height: 280px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  transform: rotate(15deg);
+  filter: blur(8px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Marco de la Laptop (Premium Bezel) */
+.laptop-bezel {
+  width: 95%;
+  max-width: 1280px;
+  height: 85%;
+  max-height: 800px;
+  background: #111111;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: var(--shadow-window);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+  border: 3px solid #2d2d2d;
+}
+
+/* Cámara web reflexiva superior */
+.laptop-camera {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1a1a2e;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.4);
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.laptop-camera::after {
+  content: '';
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #00bcd4;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  opacity: 0.5;
+}
+
+/* ==========================================================================
+   2. VENTANA DE LA APLICACIÓN (APA FORMATTER WINDOW FRAME)
+   ========================================================================== */
+
+.app-window-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-desk-gradient);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.5);
+}
+
+/* Barra de título de la aplicación (Estilo Desktop Nativo) */
+.app-titlebar {
+  height: 40px;
+  background: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  user-select: none;
+}
+
+/* Controles de Ventana (Semaforo) */
+.window-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.control-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot-red { background: #ff5f56; border: 0.5px solid #e0443e; }
+.dot-yellow { background: #ffbd2e; border: 0.5px solid #dfa224; }
+.dot-green { background: #27c93f; border: 0.5px solid #1aab29; }
+
+/* Título Central del Software */
+.window-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.window-title-badge {
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* Menú Superior / Barra de Estado */
+.app-menubar {
+  display: flex;
+  gap: 20px;
+}
+
+.menu-item {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+}
+
+.menu-item:hover {
+  color: var(--accent-blue);
+}
+
+/* ==========================================================================
+   3. ESTRUCTURA DE PANELES (DUAL PANEL DIVISION)
+   ========================================================================== */
+
+.app-workspace-body {
+  flex: 1;
+  display: flex;
+  height: calc(100% - 40px);
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-izquierdo, .panel-derecho {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Línea divisoria central sutil */
+.panel-izquierdo {
+  border-right: 1px solid var(--border-subtle);
+  background: rgba(253, 252, 250, 0.6);
+}
+
+/* Encabezados de paneles */
+.panel-header {
+  height: 65px;
+  background: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.app-subtitle {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-blue);
+  font-weight: 700;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+/* ==========================================================================
+   4. DETALLES Y CONTENEDOR DE DRAFT (PANEL IZQUIERDO)
+   ========================================================================== */
+
+.draft-container {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* Guía rápida de marcadores interactivos */
+.draft-instructions {
+  background: #fdfdfd;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.instructions-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.markers-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.marker-tag {
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+  border: 1px solid rgba(43, 87, 154, 0.15);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.marker-tag:hover {
+  background: var(--accent-blue);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Selector de borradores de Supabase */
+.documentos-guardados-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(43, 87, 154, 0.04);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(43, 87, 154, 0.08);
+}
+
+.doc-select-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+
+.doc-select {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--color-text-main);
+  outline: none;
+  cursor: pointer;
+}
+
+/* Área de Texto y Editor */
+.textarea-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 250px;
+}
+
+.draft-textarea {
+  width: 100%;
+  height: 100%;
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #2b2b2a;
+  resize: none;
+  outline: none;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.draft-textarea:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.15), inset 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+/* Cargador difuminado (Glassmorphic Loader) para Gemini */
+.glass-loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 40px;
+  text-align: center;
+  z-index: 10;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--accent-blue-light);
+  border-top: 4px solid var(--accent-blue);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loader-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-blue);
+  max-width: 320px;
+}
+
+/* Acciones inferiores de Draft */
+.draft-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-left-buttons, .footer-right-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* ==========================================================================
+   5. BOTONES Y COMPONENTES REUTILIZABLES
+   ========================================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: white;
+  box-shadow: 0 4px 12px rgba(43, 87, 154, 0.25);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(43, 87, 154, 0.35);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--color-text-main);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f7f6f4;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.btn-supabase {
+  background: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.btn-supabase:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.icon-danger:hover {
+  background: #ffebee;
+  color: var(--color-danger);
+  border-color: rgba(198, 40, 40, 0.2);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Animación de latido para llamar la atención en botones IA */
+.btn-pulse {
+  animation: pulse-border 2.5s infinite;
+}
+
+/* Botones de enlace textuales */
+.btn-text-action {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-text-action:hover {
+  color: var(--accent-blue);
+  background: var(--accent-blue-light);
+}
+
+/* Iconos de colores comunes */
+.icon-blue { color: var(--accent-blue); }
+.icon-success { color: var(--color-success); }
+.icon-gray { color: var(--color-text-muted); }
+
+/* ==========================================================================
+   6. VISTA PREVIA APA 7 (PANEL DERECHO & HOJA DE PAPEL)
+   ========================================================================== */
+
+.panel-derecho {
+  background: #e8e5e0; /* Color gris suave de cartón/base para contrastar la hoja */
+  box-shadow: inset 5px 0 15px rgba(0,0,0,0.03);
+}
+
+.preview-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.toolbar-preview {
+  display: flex;
+  gap: 8px;
+}
+
+/* Estado Vacío de Preview */
+.preview-empty-state {
+  margin-top: 100px;
+  max-width: 380px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.empty-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* Espacio de trabajo físico del Papel */
+.paper-workspace {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 50px;
+}
+
+/* Simulación Fiel de Hoja de Papel Bond A4 / Carta */
+.paper-sheet {
+  width: 100%;
+  max-width: 612px; /* Escala proporcional para navegador */
+  min-height: 792px;
+  background: white;
+  box-shadow: var(--shadow-sheet);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  position: relative;
+  
+  /* Márgenes APA 7: 1 pulgada = 2.54 cm = padding a escala */
+  padding: 2.54cm;
+  
+  /* Pautas Tipográficas APA 7 */
+  font-family: var(--font-paper);
+  color: #000000;
+  font-size: 11pt; /* APA 7 Times New Roman es 12pt, que representamos con escala */
+  line-height: 2.0; /* Doble espacio en todo el documento */
+  text-align: left;
+}
+
+/* Numeración de página APA 7 (Top-Right de cada hoja) */
+.paper-page-number {
+  position: absolute;
+  top: 1.27cm; /* Margen de 0.5 pulgadas */
+  right: 2.54cm;
+  font-size: 11pt;
+  font-family: var(--font-paper);
+}
+
+/* Párrafo APA 7 (Sangría primera línea de 1.27cm = 0.5 pulgadas) */
+.paper-paragraph {
+  text-indent: 1.27cm;
+  margin-bottom: 0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  text-align: justify;
+}
+
+/* Título de Portada */
+.paper-portada-item {
+  text-align: center;
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
+.portada-titulo {
+  font-weight: bold;
+  margin-top: 2.54cm; /* Espacio extra arriba */
+  margin-bottom: 2.54cm; /* Espacio antes del autor */
+}
+
+/* Títulos de Nivel APA 7 */
+
+/* Nivel 1: Centrado, Negrita, Caso de Título */
+.paper-heading-1 {
+  text-align: center;
+  font-weight: bold;
+  font-size: 11pt;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  text-indent: 0;
+}
+
+/* Nivel 2: Izquierda, Negrita, Caso de Título */
+.paper-heading-2 {
+  text-align: left;
+  font-weight: bold;
+  font-size: 11pt;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  text-indent: 0;
+}
+
+/* Nivel 3: Izquierda, Negrita y Cursiva */
+.paper-heading-3 {
+  text-align: left;
+  font-weight: bold;
+  font-style: italic;
+  font-size: 11pt;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  text-indent: 0;
+}
+
+/* Sección de Referencias (Sangría francesa de 1.27 cm) */
+.references-title {
+  margin-top: 2em;
+}
+
+.paper-reference {
+  text-indent: -1.27cm;
+  padding-left: 1.27cm;
+  margin-bottom: 0.8em;
+  word-wrap: break-word;
+  text-align: left;
+}
+
+/* Línea indicadora de salto de página virtual en pantalla */
+.paper-page-break-indicator {
+  border-top: 1px dashed #d1c7bd;
+  margin: 2em 0;
+  position: relative;
+  text-align: center;
+  user-select: none;
+  height: 0;
+}
+
+.paper-page-break-indicator span {
+  position: absolute;
+  top: -10px;
+  background: white;
+  padding: 0 10px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #a89a8f;
+  font-family: var(--font-ui);
+  font-weight: bold;
+}
+
+/* ==========================================================================
+   7. HERRAMIENTA FLOTANTE DE CITACIÓN CON IA
+   ========================================================================== */
+
+.citation-tool-card {
+  position: sticky;
+  top: 15px;
+  align-self: center;
+  width: 100%;
+  max-width: 550px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(43, 87, 154, 0.25);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+  margin-bottom: 20px;
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100;
+}
+
+.card-header-tool {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-title-tool {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.close-tool {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-tool:hover {
+  color: var(--color-danger);
+}
+
+.card-desc-tool {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.tool-form {
+  margin-bottom: 12px;
+}
+
+.input-group-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f4f2;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 6px 12px;
+  transition: border-color 0.2s;
+}
+
+.input-group-tool:focus-within {
+  border-color: var(--accent-blue);
+}
+
+.tool-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  color: var(--color-text-main);
+}
+
+.btn-tool {
+  padding: 6px 14px !important;
+  font-size: 11px !important;
+  border-radius: 6px !important;
+}
+
+.tool-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--accent-blue);
+  margin-top: 10px;
+}
+
+.mini-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(43, 87, 154, 0.2);
+  border-top: 2px solid var(--accent-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.tool-results {
+  margin-top: 12px;
+  background: #fbfbfb;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.ref-result-box {
+  margin-bottom: 12px;
+}
+
+.ref-label {
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--accent-blue);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.ref-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #1e1e1e;
+  background: white;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+.citations-copiers {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.copy-cit-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cit-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.btn-copy-cit {
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-copy-cit:hover {
+  background: var(--accent-blue-light);
+  border-color: var(--accent-blue);
+}
+
+.btn-copy-cit code {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.success-toast {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-success);
+  margin-top: 8px;
+}
+
+/* ==========================================================================
+   8. MODAL DE CONFIGURACIÓN Y FOOTER DE APP
+   ========================================================================== */
+
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.settings-modal {
+  width: 90%;
+  max-width: 480px;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  animation: zoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: justify;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.form-input {
+  background: #fdfcfb;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--color-text-main);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  border-color: var(--accent-blue);
+}
+
+.form-help {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 16px;
+}
+
+/* ==========================================================================
+   9. ANIMACIONES Y SOPORTE DE AJUSTES FINALES
+   ========================================================================== */
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(43, 87, 154, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(43, 87, 154, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(43, 87, 154, 0); }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animated-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Soporte tipográfico para APA */
+.font-serif {
+  font-family: var(--font-paper) !important;
+}
+
+.font-accent {
+  font-family: var(--font-ui) !important;
+}

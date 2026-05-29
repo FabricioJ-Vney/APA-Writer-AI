@@ -22,6 +22,7 @@ import {
   obtenerDocumentos, 
   guardarDocumento, 
   obtenerDocumento,
+  eliminarDocumento,
   supabase
 } from './services/supabaseService';
 
@@ -154,6 +155,32 @@ function App() {
     }
   };
 
+  // Eliminar un borrador de Supabase/Local
+  const handleDeleteDocument = async () => {
+    if (!selectedDocId) return;
+
+    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el borrador "${nombreArchivo}"? Esta acción no se puede deshacer.`)) {
+      setIsSaveLoading(true);
+      try {
+        const success = await eliminarDocumento(selectedDocId);
+        if (success) {
+          alert('Borrador eliminado con éxito.');
+          setSelectedDocId('');
+          setDraftText('');
+          setImagenes({});
+          setNombreArchivo('Mi Trabajo APA 7');
+          await cargarDocumentosSupabase();
+        } else {
+          alert('Hubo un error al intentar eliminar el borrador.');
+        }
+      } catch (error) {
+        console.error('Error al eliminar documento:', error);
+      } finally {
+        setIsSaveLoading(false);
+      }
+    }
+  };
+
   // Formatear gramática y tono con Gemini IA
   const handleFormatWithAI = async () => {
     if (!draftText.trim()) return;
@@ -274,8 +301,10 @@ function App() {
               setImagenes={setImagenes}
               nombreArchivo={nombreArchivo}
               setNombreArchivo={setNombreArchivo}
+              elementosFormateados={elementosConImagenes}
               onFormatWithAI={handleFormatWithAI}
               onSaveToSupabase={handleSaveToSupabase}
+              onDeleteDocument={handleDeleteDocument}
               isAILoading={isAILoading}
               isSaveLoading={isSaveLoading}
               documentos={documentos}

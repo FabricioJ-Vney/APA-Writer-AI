@@ -5,7 +5,9 @@ import {
   Database, 
   Sparkles,
   RefreshCw,
-  Plus
+  Plus,
+  Undo2,
+  Redo2
 } from 'lucide-react';
 import './App.css';
 
@@ -39,6 +41,103 @@ function App() {
   const [isListLoading, setIsListLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showTOC, setShowTOC] = useState(true);
+
+  // --- HISTORY STATE SYSTEM (UNDO / REDO) ---
+  const [history, setHistory] = useState([]);
+  const [historyPointer, setHistoryPointer] = useState(-1);
+  const isUndoRedoRef = React.useRef(false);
+  const debouncedHistoryTimeoutRef = React.useRef(null);
+
+  const resetHistory = (text, imgs) => {
+    setHistory([{ draftText: text, imagenes: imgs }]);
+    setHistoryPointer(0);
+    if (debouncedHistoryTimeoutRef.current) {
+      clearTimeout(debouncedHistoryTimeoutRef.current);
+    }
+  };
+
+  const handleUndo = () => {
+    if (historyPointer > 0) {
+      isUndoRedoRef.current = true;
+      const targetPointer = historyPointer - 1;
+      const targetEntry = history[targetPointer];
+      setHistoryPointer(targetPointer);
+      setDraftText(targetEntry.draftText);
+      setImagenes(targetEntry.imagenes);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyPointer < history.length - 1) {
+      isUndoRedoRef.current = true;
+      const targetPointer = historyPointer + 1;
+      const targetEntry = history[targetPointer];
+      setHistoryPointer(targetPointer);
+      setDraftText(targetEntry.draftText);
+      setImagenes(targetEntry.imagenes);
+    }
+  };
+
+  // Auto-record document modifications into the history stack (debounced)
+  useEffect(() => {
+    if (isUndoRedoRef.current) {
+      isUndoRedoRef.current = false;
+      return;
+    }
+
+    if (history.length === 0) {
+      setHistory([{ draftText, imagenes }]);
+      setHistoryPointer(0);
+      return;
+    }
+
+    // Skip duplicate history pushes
+    const currentEntry = history[historyPointer];
+    if (currentEntry && currentEntry.draftText === draftText && JSON.stringify(currentEntry.imagenes) === JSON.stringify(imagenes)) {
+      return;
+    }
+
+    if (debouncedHistoryTimeoutRef.current) {
+      clearTimeout(debouncedHistoryTimeoutRef.current);
+    }
+
+    debouncedHistoryTimeoutRef.current = setTimeout(() => {
+      setHistory(prev => {
+        const sliced = prev.slice(0, historyPointer + 1);
+        return [...sliced, { draftText, imagenes }];
+      });
+      setHistoryPointer(prev => prev + 1);
+    }, 400);
+
+    return () => {
+      if (debouncedHistoryTimeoutRef.current) {
+        clearTimeout(debouncedHistoryTimeoutRef.current);
+      }
+    };
+  }, [draftText, imagenes]);
+
+  // Global Keyboard Shortcuts for Undo/Redo
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const isCtrl = e.ctrlKey || e.metaKey;
+      if (isCtrl) {
+        if (e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            handleRedo();
+          } else {
+            handleUndo();
+          }
+        } else if (e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          handleRedo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [history, historyPointer]);
 
   // Extrae de forma transparente los metadatos serializados de imágenes al cargar un borrador
   const procesarTextoEntrante = (textoRaw) => {
@@ -85,6 +184,7 @@ function App() {
     const { cleanText, imgs } = procesarTextoEntrante(obtenerTextoEjemploAPA());
     setDraftText(cleanText);
     setImagenes(imgs);
+    resetHistory(cleanText, imgs);
     setNombreArchivo('Plantilla de Investigación APA 7');
   }, []);
 
@@ -128,6 +228,7 @@ function App() {
       const { cleanText, imgs } = procesarTextoEntrante(obtenerTextoEjemploAPA());
       setDraftText(cleanText);
       setImagenes(imgs);
+      resetHistory(cleanText, imgs);
       setNombreArchivo('Borrador Nuevo APA 7');
       return;
     }
@@ -138,6 +239,7 @@ function App() {
         const { cleanText, imgs } = procesarTextoEntrante(doc.contenido || '');
         setDraftText(cleanText);
         setImagenes(imgs);
+        resetHistory(cleanText, imgs);
         setNombreArchivo(doc.titulo || 'Borrador Sin Título');
       }
     } catch (error) {
@@ -151,6 +253,7 @@ function App() {
       setSelectedDocId('');
       setDraftText('');
       setImagenes({});
+      resetHistory('', {});
       setNombreArchivo('Mi Trabajo APA 7');
     }
   };
@@ -168,6 +271,7 @@ function App() {
           setSelectedDocId('');
           setDraftText('');
           setImagenes({});
+          resetHistory('', {});
           setNombreArchivo('Mi Trabajo APA 7');
           await cargarDocumentosSupabase();
         } else {
@@ -286,6 +390,32 @@ function App() {
               >
                 <SettingsIcon size={14} />
                 Credenciales API
+              </div>
+              <div 
+                className="menu-item"
+                onClick={handleUndo}
+                style={{ 
+                  opacity: historyPointer <= 0 ? 0.35 : 1, 
+                  cursor: historyPointer <= 0 ? 'not-allowed' : 'pointer',
+                  pointerEvents: historyPointer <= 0 ? 'none' : 'auto'
+                }}
+                title="Deshacer cambio (Ctrl+Z)"
+              >
+                <Undo2 size={14} />
+                Deshacer
+              </div>
+              <div 
+                className="menu-item"
+                onClick={handleRedo}
+                style={{ 
+                  opacity: historyPointer >= history.length - 1 ? 0.35 : 1, 
+                  cursor: historyPointer >= history.length - 1 ? 'not-allowed' : 'pointer',
+                  pointerEvents: historyPointer >= history.length - 1 ? 'none' : 'auto'
+                }}
+                title="Rehacer cambio (Ctrl+Y o Ctrl+Shift+Z)"
+              >
+                <Redo2 size={14} />
+                Rehacer
               </div>
             </div>
           </div>

@@ -40,6 +40,19 @@ export default function DraftInput({
   const imageInputRef = useRef(null);
 
   const [isSettingsCollapsed, setIsSettingsCollapsed] = useState(false);
+  const [selectedVisualBlockIdx, setSelectedVisualBlockIdx] = useState(null);
+
+  // Helper to dynamically calculate rows based on paragraph contents to keep text fully visible
+  const calculateRows = (text, type) => {
+    if (type.startsWith('titulo')) return 1;
+    if (!text) return 3;
+    const lines = text.split('\n');
+    let rowCount = 0;
+    lines.forEach(line => {
+      rowCount += Math.max(1, Math.ceil(line.length / 75));
+    });
+    return Math.max(3, rowCount);
+  };
 
   // --- SERIALIZADOR DE ELEMENTOS A TEXTO CRUDO ---
   const serializarElementosATexto = (elementos) => {
@@ -85,6 +98,8 @@ export default function DraftInput({
             textLines.push('[Referencias]');
           }
           textLines.push(el.texto);
+        } else if (el.tipo === 'indice') {
+          textLines.push('[Índice]');
         }
       }
     });
@@ -208,7 +223,40 @@ export default function DraftInput({
     return lines.join('\n');
   };
 
-  // Añadir un nuevo tipo de bloque (Usado en el marcador de la Vista de Bloques)
+  // Helper to reorder/move visual blocks up or down in the document structure
+  const handleMoveVisualBlock = (bIdx, direction) => {
+    const visualBlocks = obtenerBloquesVisuales();
+    if (direction === 'up' && bIdx === 0) return;
+    if (direction === 'down' && bIdx === visualBlocks.length - 1) return;
+
+    const swapIdx = direction === 'up' ? bIdx - 1 : bIdx + 1;
+    const temp = visualBlocks[bIdx];
+    visualBlocks[bIdx] = visualBlocks[swapIdx];
+    visualBlocks[swapIdx] = temp;
+
+    // Reconstruct the flat list of elements from visualBlocks
+    const nuevosElementos = [];
+    visualBlocks.forEach(block => {
+      if (block.tipo === 'portada') {
+        block.lineas.forEach((line, lIdx) => {
+          nuevosElementos.push({
+            tipo: 'portada',
+            rol: lIdx === 0 ? 'titulo' : 'detalle',
+            texto: line,
+            esUltimoDePortada: lIdx === block.lineas.length - 1
+          });
+        });
+      } else {
+        const { indiceOriginal, indicesOriginales, ...rest } = block;
+        nuevosElementos.push(rest);
+      }
+    });
+
+    setDraftText(serializarElementosATexto(nuevosElementos));
+    setSelectedVisualBlockIdx(swapIdx);
+  };
+
+  // Añadir un nuevo tipo de bloque (con opción de insertar arriba o abajo si hay selección activa)
   const handleAddBlockType = (tipo) => {
     let nuevoEl;
     if (tipo === 'portada') {
@@ -234,9 +282,32 @@ export default function DraftInput({
       };
     } else if (tipo === 'referencia') {
       nuevoEl = { tipo: 'referencia', texto: 'Autor, A. A. (Año). Título del libro. Editorial.' };
+    } else if (tipo === 'indice') {
+      nuevoEl = { tipo: 'indice', texto: '' };
     }
 
-    const nuevosElementos = [...elementosFormateados, nuevoEl];
+    let nuevosElementos = [...elementosFormateados];
+
+    if (selectedVisualBlockIdx !== null) {
+      const visualBlocks = obtenerBloquesVisuales();
+      const targetVisualBlock = visualBlocks[selectedVisualBlockIdx];
+      
+      const insertAtAbove = window.confirm("¿Deseas insertar el nuevo bloque ARRIBA del bloque seleccionado? \n\n(Aceptar = ARRIBA, Cancelar = ABAJO)");
+      
+      let flatInsertIdx;
+      if (targetVisualBlock.tipo === 'portada') {
+        const firstIdx = targetVisualBlock.indicesOriginales[0];
+        const lastIdx = targetVisualBlock.indicesOriginales[targetVisualBlock.indicesOriginales.length - 1];
+        flatInsertIdx = insertAtAbove ? firstIdx : lastIdx + 1;
+      } else {
+        flatInsertIdx = insertAtAbove ? targetVisualBlock.indiceOriginal : targetVisualBlock.indiceOriginal + 1;
+      }
+
+      nuevosElementos.splice(flatInsertIdx, 0, nuevoEl);
+    } else {
+      nuevosElementos.push(nuevoEl);
+    }
+
     setDraftText(serializarElementosATexto(nuevosElementos));
   };
 
@@ -418,16 +489,16 @@ export default function DraftInput({
                   <button type="button" className="marker-tag" onClick={handleInsertPortada} style={{ border: '1px solid rgba(43, 87, 154, 0.3)', background: 'rgba(43, 87, 154, 0.05)', color: 'var(--accent-blue)' }}>
                     <Plus size={12} /> + Portada
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Título] ')}>
+                  <button type="button" className="marker-tag" onClick={() => handleAddBlockType('titulo1')}>
                     <Plus size={12} /> [Título]
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Subtítulo] ')}>
+                  <button type="button" className="marker-tag" onClick={() => handleAddBlockType('titulo2')}>
                     <Plus size={12} /> [Subtítulo]
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Subsección] ')}>
+                  <button type="button" className="marker-tag" onClick={() => handleAddBlockType('titulo3')}>
                     <Plus size={12} /> [Subsección]
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Párrafo] ')}>
+                  <button type="button" className="marker-tag" onClick={() => handleAddBlockType('parrafo')}>
                     <Plus size={12} /> [Párrafo]
                   </button>
                   <button type="button" className="marker-tag" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981' }} onClick={() => imageInputRef.current.click()}>
@@ -436,30 +507,62 @@ export default function DraftInput({
                   <button type="button" className="marker-tag" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981' }} onClick={handleInsertTable}>
                     <Plus size={12} /> + Tabla
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Referencias]\n')}>
+                  <button type="button" className="marker-tag" onClick={() => handleAddBlockType('referencia')}>
                     <Plus size={12} /> [Referencias]
                   </button>
                 </div>
               </div>
 
-              {/* Toggle de Índice Automático */}
-              <div className="toc-toggle-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fcfbfa', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '10px 14px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text-main)' }}>Incluir Índice de Contenidos</span>
-                  <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Crea una Tabla de Contenidos basada en tus títulos.</span>
+              {/* Índice de Contenidos: Toggle o Añadir Botón */}
+              {elementosFormateados.some(el => el.tipo === 'indice') ? (
+                <div className="toc-toggle-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fcfbfa', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '10px 14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text-main)' }}>Incluir Índice de Contenidos</span>
+                    <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Crea una Tabla de Contenidos basada en tus títulos.</span>
+                  </div>
+                  <label className="switch-premium" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '20px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={showTOC} 
+                      onChange={(e) => setShowTOC(e.target.checked)}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span className="slider-premium" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: showTOC ? 'var(--accent-blue)' : '#ccc', transition: '0.4s', borderRadius: '20px' }}>
+                      <span style={{ position: 'absolute', content: '""', height: '14px', width: '14px', left: showTOC ? '22px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '0.4s', borderRadius: '50%' }}></span>
+                    </span>
+                  </label>
                 </div>
-                <label className="switch-premium" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '20px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={showTOC} 
-                    onChange={(e) => setShowTOC(e.target.checked)}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span className="slider-premium" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: showTOC ? 'var(--accent-blue)' : '#ccc', transition: '0.4s', borderRadius: '20px' }}>
-                    <span style={{ position: 'absolute', content: '""', height: '14px', width: '14px', left: showTOC ? '22px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '0.4s', borderRadius: '50%' }}></span>
-                  </span>
-                </label>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-secondary font-accent"
+                  onClick={() => {
+                    handleAddBlockType('indice');
+                    setShowTOC(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    padding: '8px 12px',
+                    background: '#fffbeb',
+                    border: '1px dashed #fcd34d',
+                    color: '#b45309',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: '600',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#fef3c7'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#fffbeb'}
+                >
+                  <Plus size={13} style={{ color: '#d97706' }} />
+                  + Añadir Índice de Contenidos
+                </button>
+              )}
 
               {/* Historial de borradores guardados (si hay) con botón Eliminar */}
               {documentos && documentos.length > 0 && (
@@ -551,6 +654,8 @@ export default function DraftInput({
         <div className="textarea-wrapper">
           <div className="block-editor-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '20px' }}>
               {obtenerBloquesVisuales().map((block, bIdx) => {
+                const isSelected = selectedVisualBlockIdx === bIdx;
+
                 const selectClassMap = {
                   titulo1: 'block-select-titulo1',
                   titulo2: 'block-select-titulo2',
@@ -571,37 +676,84 @@ export default function DraftInput({
                   referencia: 'Referencia Bibliográfica'
                 };
 
+                const borderColors = {
+                  portada: 'var(--accent-blue)',
+                  figura: '#10b981',
+                  tabla: '#0d9488',
+                  titulo1: 'var(--accent-blue)',
+                  titulo2: '#9333ea',
+                  titulo3: '#0891b2',
+                  parrafo: '#cbd5e1',
+                  referencia: '#d97706',
+                  indice: '#f59e0b'
+                };
+
                 // --- PORTADA CARD ---
                 if (block.tipo === 'portada') {
                   return (
-                    <div key={`portada-${bIdx}`} className="block-card" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
+                    <div 
+                      key={`portada-${bIdx}`} 
+                      className="block-card" 
+                      style={{ 
+                        borderLeft: '4px solid var(--accent-blue)',
+                        boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+                        transform: isSelected ? 'scale(1.002)' : 'none',
+                        transition: 'all 0.2s ease',
+                        outline: 'none'
+                      }}
+                      onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                    >
                       <div className="block-card-header">
                         <div className="block-badge-container">
                           <span className="block-type-select block-select-portada" style={{ fontSize: '10px', fontWeight: 'bold' }}>
                             Portada Principal (Página 1)
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          className="block-delete-btn"
-                          onClick={() => {
-                            if (window.confirm('¿Deseas eliminar la portada completa del documento?')) {
-                              const nuevosElementos = elementosFormateados.filter(el => el.tipo !== 'portada');
-                              setDraftText(serializarElementosATexto(nuevosElementos));
-                            }
-                          }}
-                          title="Eliminar Portada"
-                        >
-                          ×
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'up'); }}
+                            disabled={bIdx === 0}
+                            title="Mover Portada Arriba"
+                            className="block-delete-btn"
+                            style={{ color: bIdx === 0 ? '#d1d5db' : '#4b5563', cursor: bIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'down'); }}
+                            disabled={bIdx === obtenerBloquesVisuales().length - 1}
+                            title="Mover Portada Abajo"
+                            className="block-delete-btn"
+                            style={{ color: bIdx === obtenerBloquesVisuales().length - 1 ? '#d1d5db' : '#4b5563', cursor: bIdx === obtenerBloquesVisuales().length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="block-delete-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm('¿Deseas eliminar la portada completa del documento?')) {
+                                const nuevosElementos = elementosFormateados.filter(el => el.tipo !== 'portada');
+                                setDraftText(serializarElementosATexto(nuevosElementos));
+                              }
+                            }}
+                            title="Eliminar Portada"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
                       <div className="block-field-group">
                         <label className="block-field-label">Contenido de la Portada (Línea por línea):</label>
                         <textarea
                           className="block-textarea"
-                          rows={6}
+                          rows={calculateRows(block.lineas.join('\n'), 'portada')}
                           placeholder="Línea 1: TÍTULO DEL TRABAJO&#10;Línea 2: Nombre Completo&#10;Línea 3: Universidad... etc."
                           value={block.lineas.join('\n')}
+                          onFocus={() => setSelectedVisualBlockIdx(bIdx)}
                           onChange={(e) => handlePortadaChange(e.target.value)}
                         />
                       </div>
@@ -613,7 +765,18 @@ export default function DraftInput({
                 if (block.tipo === 'figura') {
                   const realImgSrc = imagenes[block.base64] || block.base64;
                   return (
-                    <div key={`block-${bIdx}`} className="block-card" style={{ borderLeft: '4px solid #10b981' }}>
+                    <div 
+                      key={`block-${bIdx}`} 
+                      className="block-card" 
+                      style={{ 
+                        borderLeft: '4px solid #10b981',
+                        boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+                        transform: isSelected ? 'scale(1.002)' : 'none',
+                        transition: 'all 0.2s ease',
+                        outline: 'none'
+                      }}
+                      onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                    >
                       <div className="block-card-header">
                         <div className="block-badge-container">
                           <select
@@ -626,14 +789,36 @@ export default function DraftInput({
                             ))}
                           </select>
                         </div>
-                        <button
-                          type="button"
-                          className="block-delete-btn"
-                          onClick={() => handleElementDelete(block.indiceOriginal)}
-                          title="Eliminar Figura"
-                        >
-                          ×
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'up'); }}
+                            disabled={bIdx === 0}
+                            title="Mover Figura Arriba"
+                            className="block-delete-btn"
+                            style={{ color: bIdx === 0 ? '#d1d5db' : '#4b5563', cursor: bIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'down'); }}
+                            disabled={bIdx === obtenerBloquesVisuales().length - 1}
+                            title="Mover Figura Abajo"
+                            className="block-delete-btn"
+                            style={{ color: bIdx === obtenerBloquesVisuales().length - 1 ? '#d1d5db' : '#4b5563', cursor: bIdx === obtenerBloquesVisuales().length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="block-delete-btn"
+                            onClick={(e) => { e.stopPropagation(); handleElementDelete(block.indiceOriginal); }}
+                            title="Eliminar Figura"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
                       
                       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
@@ -654,6 +839,7 @@ export default function DraftInput({
                               className="block-input"
                               value={block.titulo || ''}
                               onChange={(e) => handleFigureChange(block.indiceOriginal, 'titulo', e.target.value)}
+                              onFocus={() => setSelectedVisualBlockIdx(bIdx)}
                               placeholder="Ej: Gráfico de dispersión de ansiedad..."
                             />
                           </div>
@@ -664,6 +850,7 @@ export default function DraftInput({
                               className="block-input"
                               value={block.nota || ''}
                               onChange={(e) => handleFigureChange(block.indiceOriginal, 'nota', e.target.value)}
+                              onFocus={() => setSelectedVisualBlockIdx(bIdx)}
                               placeholder="Ej: Nota. Adaptado de Smith (2023)."
                             />
                           </div>
@@ -676,7 +863,18 @@ export default function DraftInput({
                 // --- TABLA APA 7 CARD ---
                 if (block.tipo === 'tabla') {
                   return (
-                    <div key={`block-${bIdx}`} className="block-card" style={{ borderLeft: '4px solid #0d9488' }}>
+                    <div 
+                      key={`block-${bIdx}`} 
+                      className="block-card" 
+                      style={{ 
+                        borderLeft: '4px solid #0d9488',
+                        boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+                        transform: isSelected ? 'scale(1.002)' : 'none',
+                        transition: 'all 0.2s ease',
+                        outline: 'none'
+                      }}
+                      onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                    >
                       <div className="block-card-header">
                         <div className="block-badge-container">
                           <select
@@ -689,14 +887,36 @@ export default function DraftInput({
                             ))}
                           </select>
                         </div>
-                        <button
-                          type="button"
-                          className="block-delete-btn"
-                          onClick={() => handleElementDelete(block.indiceOriginal)}
-                          title="Eliminar Tabla"
-                        >
-                          ×
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'up'); }}
+                            disabled={bIdx === 0}
+                            title="Mover Tabla Arriba"
+                            className="block-delete-btn"
+                            style={{ color: bIdx === 0 ? '#d1d5db' : '#4b5563', cursor: bIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'down'); }}
+                            disabled={bIdx === obtenerBloquesVisuales().length - 1}
+                            title="Mover Tabla Abajo"
+                            className="block-delete-btn"
+                            style={{ color: bIdx === obtenerBloquesVisuales().length - 1 ? '#d1d5db' : '#4b5563', cursor: bIdx === obtenerBloquesVisuales().length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="block-delete-btn"
+                            onClick={(e) => { e.stopPropagation(); handleElementDelete(block.indiceOriginal); }}
+                            title="Eliminar Tabla"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -707,6 +927,7 @@ export default function DraftInput({
                             className="block-input"
                             value={block.titulo || ''}
                             onChange={(e) => handleTableTitleChange(block.indiceOriginal, e.target.value)}
+                            onFocus={() => setSelectedVisualBlockIdx(bIdx)}
                             placeholder="Ej: Comparativa de Muestra..."
                           />
                         </div>
@@ -715,9 +936,10 @@ export default function DraftInput({
                           <label className="block-field-label">Celdas de la Tabla (Separadas por |):</label>
                           <textarea
                             className="block-textarea font-serif"
-                            rows={3}
+                            rows={calculateRows(serializarTablaACrud(block), 'tabla')}
                             value={serializarTablaACrud(block)}
                             onChange={(e) => handleTableGridChange(block.indiceOriginal, e.target.value)}
+                            onFocus={() => setSelectedVisualBlockIdx(bIdx)}
                             placeholder="Encabezado 1 | Encabezado 2&#10;Dato Col 1 | Dato Col 2"
                           />
                         </div>
@@ -729,6 +951,7 @@ export default function DraftInput({
                             className="block-input"
                             value={block.nota || ''}
                             onChange={(e) => handleTableNotaChange(block.indiceOriginal, e.target.value)}
+                            onFocus={() => setSelectedVisualBlockIdx(bIdx)}
                             placeholder="Ej: Nota. Datos del estudio preliminar."
                           />
                         </div>
@@ -737,20 +960,113 @@ export default function DraftInput({
                   );
                 }
 
-                // --- ESTÁNDAR TEXT CARD (Párrafo, Títulos, Referencias) ---
-                const borderColors = {
-                  titulo1: 'var(--accent-blue)',
-                  titulo2: '#9333ea',
-                  titulo3: '#0891b2',
-                  parrafo: '#cbd5e1',
-                  referencia: '#d97706'
-                };
+                // --- ÍNDICE (TOC) CARD ---
+                if (block.tipo === 'indice') {
+                  const titulos = elementosFormateados.filter(el => ['titulo1', 'titulo2', 'titulo3'].includes(el.tipo));
+                  return (
+                    <div 
+                      key={`block-${bIdx}`} 
+                      className="block-card" 
+                      style={{ 
+                        borderLeft: '4px solid #f59e0b', 
+                        background: '#fffbeb',
+                        boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+                        transform: isSelected ? 'scale(1.002)' : 'none',
+                        transition: 'all 0.2s ease',
+                        outline: 'none'
+                      }}
+                      onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                    >
+                      <div className="block-card-header">
+                        <div className="block-badge-container">
+                          <span style={{ fontSize: '10px', fontWeight: 'bold', background: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>
+                            Índice de Contenidos (Auto)
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDraftText(serializarElementosATexto([...elementosFormateados]));
+                              alert('Índice sincronizado con los títulos del documento.');
+                            }}
+                            style={{ padding: '2px 6px', fontSize: '9px', height: '22px', border: '1px solid #d97706', color: '#d97706', background: 'white' }}
+                            title="Actualizar tabla de contenidos"
+                          >
+                            Actualizar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'up'); }}
+                            disabled={bIdx === 0}
+                            title="Mover Índice Arriba"
+                            className="block-delete-btn"
+                            style={{ color: bIdx === 0 ? '#d1d5db' : '#4b5563', cursor: bIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'down'); }}
+                            disabled={bIdx === obtenerBloquesVisuales().length - 1}
+                            title="Mover Índice Abajo"
+                            className="block-delete-btn"
+                            style={{ color: bIdx === obtenerBloquesVisuales().length - 1 ? '#d1d5db' : '#4b5563', cursor: bIdx === obtenerBloquesVisuales().length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="block-delete-btn"
+                            onClick={(e) => { e.stopPropagation(); handleElementDelete(block.indiceOriginal); }}
+                            title="Eliminar Índice"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
 
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 10px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px', border: '1px dashed #fcd34d' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#b45309' }}>Esquema de Títulos en tu documento:</span>
+                        {titulos.length === 0 ? (
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                            Aún no has agregado títulos. Agrega títulos (H1, H2, H3) para verlos reflejados aquí.
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '150px', overflowY: 'auto', paddingRight: '4px' }}>
+                            {titulos.map((t, tIdx) => {
+                              const indent = t.tipo === 'titulo1' ? '0px' : t.tipo === 'titulo2' ? '15px' : '30px';
+                              const prefix = t.tipo === 'titulo1' ? '■' : t.tipo === 'titulo2' ? '○' : '•';
+                              const color = t.tipo === 'titulo1' ? 'var(--accent-blue)' : t.tipo === 'titulo2' ? '#9333ea' : '#0891b2';
+                              return (
+                                <div key={tIdx} style={{ fontSize: '11.5px', paddingLeft: indent, display: 'flex', alignItems: 'center', gap: '6px', color: color, fontWeight: '500' }}>
+                                  <span>{prefix}</span>
+                                  <span>{t.texto || '(Título vacío)'}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // --- ESTÁNDAR TEXT CARD (Párrafo, Títulos, Referencias) ---
                 return (
                   <div 
                     key={`block-${bIdx}`} 
                     className="block-card" 
-                    style={{ borderLeft: `4px solid ${borderColors[block.tipo] || '#cbd5e1'}` }}
+                    style={{ 
+                      borderLeft: `4px solid ${borderColors[block.tipo] || '#cbd5e1'}`,
+                      boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+                      transform: isSelected ? 'scale(1.002)' : 'none',
+                      transition: 'all 0.2s ease',
+                      outline: 'none'
+                    }}
+                    onClick={() => setSelectedVisualBlockIdx(bIdx)}
                   >
                     <div className="block-card-header">
                       <div className="block-badge-container">
@@ -764,24 +1080,47 @@ export default function DraftInput({
                           ))}
                         </select>
                       </div>
-                      <button
-                        type="button"
-                        className="block-delete-btn"
-                        onClick={() => handleElementDelete(block.indiceOriginal)}
-                        title="Eliminar bloque"
-                      >
-                        ×
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'up'); }}
+                          disabled={bIdx === 0}
+                          title="Mover Bloque Arriba"
+                          className="block-delete-btn"
+                          style={{ color: bIdx === 0 ? '#d1d5db' : '#4b5563', cursor: bIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleMoveVisualBlock(bIdx, 'down'); }}
+                          disabled={bIdx === obtenerBloquesVisuales().length - 1}
+                          title="Mover Bloque Abajo"
+                          className="block-delete-btn"
+                          style={{ color: bIdx === obtenerBloquesVisuales().length - 1 ? '#d1d5db' : '#4b5563', cursor: bIdx === obtenerBloquesVisuales().length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="block-delete-btn"
+                          onClick={(e) => { e.stopPropagation(); handleElementDelete(block.indiceOriginal); }}
+                          title="Eliminar bloque"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
 
                     <textarea
                       className={`block-textarea ${block.tipo.startsWith('titulo') ? 'font-accent' : block.tipo === 'referencia' ? 'font-serif' : ''}`}
-                      rows={block.tipo.startsWith('titulo') ? 1 : 3}
+                      rows={calculateRows(block.texto, block.tipo)}
                       style={{
                         fontWeight: block.tipo.startsWith('titulo') ? 'bold' : 'normal',
                         fontSize: block.tipo === 'titulo1' ? '15px' : block.tipo === 'titulo2' ? '14px' : block.tipo === 'titulo3' ? '13px' : '13.5px'
                       }}
                       value={block.texto || ''}
+                      onFocus={() => setSelectedVisualBlockIdx(bIdx)}
                       onChange={(e) => handleElementTextChange(block.indiceOriginal, e.target.value)}
                       placeholder={`Escribe el contenido del ${blockTypeLabels[block.tipo].toLowerCase()}...`}
                     />

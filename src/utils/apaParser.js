@@ -82,6 +82,13 @@ export function parsearTextoAPA(text) {
       continue;
     }
 
+    if (line.toLowerCase().includes('[índice]') || line.toLowerCase().includes('[indice]')) {
+      isInsidePortada = false;
+      isInsideReferencias = false;
+      elements.push({ tipo: 'indice', texto: '' });
+      continue;
+    }
+
     // --- INICIAR PARSEO DE TABLA ---
     if (line.toLowerCase().startsWith('[tabla]')) {
       isInsidePortada = false;

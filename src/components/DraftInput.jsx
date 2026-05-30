@@ -552,9 +552,8 @@ export default function DraftInput({
           </div>
         )}
 
-        <div className="textarea-wrapper" style={{ overflowY: editorMode === 'bloques' ? 'visible' : 'hidden' }}>
-          {editorMode === 'bloques' ? (
-            <div className="block-editor-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '20px' }}>
+        <div className="textarea-wrapper">
+          <div className="block-editor-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '20px' }}>
               {obtenerBloquesVisuales().map((block, bIdx) => {
                 const selectClassMap = {
                   titulo1: 'block-select-titulo1',
@@ -822,16 +821,6 @@ export default function DraftInput({
                 </button>
               </div>
             </div>
-          ) : (
-            <textarea
-              ref={textareaRef}
-              className="draft-textarea"
-              placeholder="[Portada]&#10;TÍTULO DE TU TRABAJO&#10;Tu Nombre&#10;Tu Institución&#10;&#10;[Título] Título Principal&#10;&#10;[Párrafo] Escribe o pega tu borrador aquí. Puedes marcar tu título, subtítulo o subsección con los botones superiores, o simplemente pegar un texto plano desorganizado y la app lo formateará automáticamente en tiempo real."
-              value={draftText}
-              onChange={(e) => setDraftText(e.target.value)}
-              disabled={isAILoading}
-            />
-          )}
           
           {isAILoading && (
             <div className="glass-loader">

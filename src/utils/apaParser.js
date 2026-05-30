@@ -28,7 +28,8 @@ export function parsearTextoAPA(text) {
   let firstReferenciaFound = false;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const lineRaw = lines[i];
+    const line = lineRaw.trim();
     
     // Si estamos parseando una tabla y encontramos una línea vacía, la saltamos
     if (isInsideTabla && line === '') {
@@ -99,18 +100,18 @@ export function parsearTextoAPA(text) {
     if (isInsideTabla) {
       if (!tablaElement.titulo) {
         // La primera línea de contenido dentro de la tabla es su título
-        tablaElement.titulo = line;
+        tablaElement.titulo = lineRaw.replace(/^\s+/, '');
       } 
       else if (line.toLowerCase().startsWith('nota.') || line.toLowerCase().startsWith('nota:')) {
         // La línea que comienza con "Nota." es la nota al pie de la tabla, y cierra el bloque de tabla
-        tablaElement.nota = line;
+        tablaElement.nota = lineRaw.replace(/^\s+/, '');
         elements.push(tablaElement);
         isInsideTabla = false;
         tablaElement = null;
       } 
-      else if (line.includes('|')) {
+      else if (lineRaw.includes('|')) {
         // Es una fila de datos (cabecera o registros)
-        const columnas = line.split('|').map(col => col.trim());
+        const columnas = lineRaw.split('|').map(col => col.replace(/^\s+/, ''));
         if (tablaElement.encabezados.length === 0) {
           tablaElement.encabezados = columnas;
         } else {
@@ -123,14 +124,14 @@ export function parsearTextoAPA(text) {
     // --- PARSEAR FIGURAS (IMÁGENES) ---
     if (line.startsWith('[Figura]') || line.startsWith('[figura]')) {
       isInsidePortada = false;
-      const textofigura = line.replace(/\[Figura\]/gi, '').trim();
-      const partes = textofigura.split('|').map(p => p.trim());
+      const textofigura = lineRaw.replace(/\[Figura\]/gi, '').replace(/^\s+/, '');
+      const partes = textofigura.split('|').map(p => p.replace(/^\s+/, ''));
       
       elements.push({
         tipo: 'figura',
         titulo: partes[0] || 'Figura sin título',
         nota: partes[1] || '',
-        base64: partes[2] || ''
+        base64: partes[2] ? partes[2].trim() : ''
       });
       continue;
     }
@@ -138,21 +139,21 @@ export function parsearTextoAPA(text) {
     // --- PARSEAR TÍTULOS ---
     if (line.startsWith('[Título]') || line.startsWith('[Titulo]') || line.startsWith('[título]') || line.startsWith('[titulo]')) {
       isInsidePortada = false;
-      const texto = line.replace(/\[T[ií]tulo\]/gi, '').trim();
+      const texto = lineRaw.replace(/\[T[ií]tulo\]/gi, '').replace(/^\s+/, '');
       elements.push({ tipo: 'titulo1', texto });
       continue;
     }
 
     if (line.startsWith('[Subtítulo]') || line.startsWith('[Subtitulo]') || line.startsWith('[subtítulo]') || line.startsWith('[subtitulo]')) {
       isInsidePortada = false;
-      const texto = line.replace(/\[Subt[ií]tulo\]/gi, '').trim();
+      const texto = lineRaw.replace(/\[Subt[ií]tulo\]/gi, '').replace(/^\s+/, '');
       elements.push({ tipo: 'titulo2', texto });
       continue;
     }
 
     if (line.startsWith('[Subsección]') || line.startsWith('[Subseccion]') || line.startsWith('[subsección]') || line.startsWith('[subseccion]')) {
       isInsidePortada = false;
-      const texto = line.replace(/\[Subsecci[oó]n\]/gi, '').trim();
+      const texto = lineRaw.replace(/\[Subsecci[oó]n\]/gi, '').replace(/^\s+/, '');
       elements.push({ tipo: 'titulo3', texto });
       continue;
     }
@@ -167,7 +168,7 @@ export function parsearTextoAPA(text) {
       elements.push({
         tipo: 'portada',
         rol: esTitulo ? 'titulo' : 'detalle',
-        texto: line,
+        texto: lineRaw.replace(/^\s+/, ''),
         esUltimoDePortada: false
       });
       portadaIndices.push(index);
@@ -175,19 +176,21 @@ export function parsearTextoAPA(text) {
     else if (isInsideReferencias) {
       elements.push({
         tipo: 'referencia',
-        texto: line,
+        texto: lineRaw.replace(/^\s+/, ''),
         esPrimeraReferencia: !firstReferenciaFound
       });
       firstReferenciaFound = true;
     } 
     else {
       // Párrafo estándar
-      let textoLimpio = line;
+      let textoLimpio = lineRaw;
       if (line.startsWith('[Párrafo') || line.startsWith('[Parrafo') || line.startsWith('[párrafo') || line.startsWith('[parrafo')) {
-        const finMarcador = line.indexOf(']');
+        const finMarcador = lineRaw.indexOf(']');
         if (finMarcador !== -1) {
-          textoLimpio = line.substring(finMarcador + 1).trim();
+          textoLimpio = lineRaw.substring(finMarcador + 1).replace(/^\s+/, '');
         }
+      } else {
+        textoLimpio = lineRaw.replace(/^\s+/, '');
       }
       
       elements.push({

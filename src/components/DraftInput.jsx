@@ -182,13 +182,13 @@ export default function DraftInput({
 
   const handleTableGridChange = (idx, val) => {
     const nuevosElementos = [...elementosFormateados];
-    const lines = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const lines = val.split('\n').map(l => l.replace(/^\s+/, '')).filter(l => l.replace(/^\s+/, '').length > 0);
     let encabezados = [];
     let filas = [];
     if (lines.length > 0) {
-      encabezados = lines[0].split('|').map(c => c.trim());
+      encabezados = lines[0].split('|').map(c => c.replace(/^\s+/, ''));
       for (let i = 1; i < lines.length; i++) {
-        filas.push(lines[i].split('|').map(c => c.trim()));
+        filas.push(lines[i].split('|').map(c => c.replace(/^\s+/, '')));
       }
     }
     nuevosElementos[idx] = { ...nuevosElementos[idx], encabezados, filas };

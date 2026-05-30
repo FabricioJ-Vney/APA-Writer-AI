@@ -43,20 +43,16 @@ export default function DraftInput({
 
   // --- SERIALIZADOR DE ELEMENTOS A TEXTO CRUDO ---
   const serializarElementosATexto = (elementos) => {
-    let isInsidePortada = false;
     let textLines = [];
+    let lineasPortada = [];
 
     elementos.forEach((el) => {
       if (el.tipo === 'portada') {
-        if (!isInsidePortada) {
-          textLines.push('[Portada]');
-          isInsidePortada = true;
-        }
-        textLines.push(el.texto);
+        lineasPortada.push(el.texto);
       } else {
-        if (isInsidePortada) {
-          textLines.push('[Fin Portada]');
-          isInsidePortada = false;
+        if (lineasPortada.length > 0) {
+          textLines.push(`[Portada]\n${lineasPortada.join('\n')}\n[Fin Portada]`);
+          lineasPortada = [];
         }
 
         if (el.tipo === 'titulo1') {
@@ -93,8 +89,8 @@ export default function DraftInput({
       }
     });
 
-    if (isInsidePortada) {
-      textLines.push('[Fin Portada]');
+    if (lineasPortada.length > 0) {
+      textLines.push(`[Portada]\n${lineasPortada.join('\n')}\n[Fin Portada]`);
     }
 
     return textLines.join('\n\n');

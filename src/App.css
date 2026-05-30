@@ -1128,7 +1128,7 @@ body {
   line-height: 1.5;
   color: var(--color-text-main);
   outline: none;
-  resize: vertical;
+  resize: none;
   background: #fafaf9;
   transition: all 0.2s;
 }

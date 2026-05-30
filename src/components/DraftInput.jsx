@@ -305,7 +305,16 @@ export default function DraftInput({
 
       nuevosElementos.splice(flatInsertIdx, 0, nuevoEl);
     } else {
-      nuevosElementos.push(nuevoEl);
+      if (tipo === 'indice') {
+        const firstNonPortadaIdx = nuevosElementos.findIndex(el => el.tipo !== 'portada');
+        if (firstNonPortadaIdx !== -1) {
+          nuevosElementos.splice(firstNonPortadaIdx, 0, nuevoEl);
+        } else {
+          nuevosElementos.unshift(nuevoEl);
+        }
+      } else {
+        nuevosElementos.push(nuevoEl);
+      }
     }
 
     setDraftText(serializarElementosATexto(nuevosElementos));

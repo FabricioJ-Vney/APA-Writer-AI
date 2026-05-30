@@ -10,7 +10,8 @@ import {
   LayoutGrid,
   AlignLeft,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  GripVertical
 } from 'lucide-react';
 import mammoth from 'mammoth';
 import { obtenerTextoEjemploAPA } from '../utils/apaParser';
@@ -41,6 +42,23 @@ export default function DraftInput({
 
   const [isSettingsCollapsed, setIsSettingsCollapsed] = useState(false);
   const [selectedVisualBlockIdx, setSelectedVisualBlockIdx] = useState(null);
+  const [draggableIdx, setDraggableIdx] = useState(null);
+  const [draggedIdx, setDraggedIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
+
+  // Drag and drop styles helper
+  const getDragDropStyle = (bIdx, isSelected, baseBorderLeft) => {
+    return {
+      borderLeft: baseBorderLeft,
+      boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+      transform: isSelected ? 'scale(1.002)' : 'none',
+      transition: 'all 0.2s ease',
+      outline: 'none',
+      borderTop: dragOverIdx === bIdx && draggedIdx > bIdx ? '3px solid var(--accent-blue)' : undefined,
+      borderBottom: dragOverIdx === bIdx && draggedIdx < bIdx ? '3px solid var(--accent-blue)' : undefined,
+      opacity: draggedIdx === bIdx ? 0.5 : 1
+    };
+  };
 
   // Helper to dynamically calculate rows based on paragraph contents to keep text fully visible
   const calculateRows = (text, type) => {
@@ -254,6 +272,39 @@ export default function DraftInput({
 
     setDraftText(serializarElementosATexto(nuevosElementos));
     setSelectedVisualBlockIdx(swapIdx);
+  };
+
+  // Helper to reorder/move visual blocks to an arbitrary target index on drop
+  const handleMoveVisualBlockToPosition = (fromIdx, toIdx) => {
+    if (fromIdx === toIdx) return;
+    const visualBlocks = obtenerBloquesVisuales();
+    const draggedBlock = visualBlocks[fromIdx];
+    
+    // Remove the dragged block from its old position
+    visualBlocks.splice(fromIdx, 1);
+    // Insert it into the new position
+    visualBlocks.splice(toIdx, 0, draggedBlock);
+
+    // Reconstruct the flat list of elements from visualBlocks
+    const nuevosElementos = [];
+    visualBlocks.forEach(block => {
+      if (block.tipo === 'portada') {
+        block.lineas.forEach((line, lIdx) => {
+          nuevosElementos.push({
+            tipo: 'portada',
+            rol: lIdx === 0 ? 'titulo' : 'detalle',
+            texto: line,
+            esUltimoDePortada: lIdx === block.lineas.length - 1
+          });
+        });
+      } else {
+        const { indiceOriginal, indicesOriginales, ...rest } = block;
+        nuevosElementos.push(rest);
+      }
+    });
+
+    setDraftText(serializarElementosATexto(nuevosElementos));
+    setSelectedVisualBlockIdx(toIdx);
   };
 
   // Añadir un nuevo tipo de bloque (con opción de insertar arriba o abajo si hay selección activa)
@@ -703,17 +754,48 @@ export default function DraftInput({
                     <div 
                       key={`portada-${bIdx}`} 
                       className="block-card" 
-                      style={{ 
-                        borderLeft: '4px solid var(--accent-blue)',
-                        boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
-                        transform: isSelected ? 'scale(1.002)' : 'none',
-                        transition: 'all 0.2s ease',
-                        outline: 'none'
-                      }}
+                      style={getDragDropStyle(bIdx, isSelected, '4px solid var(--accent-blue)')}
                       onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                      draggable={draggableIdx === bIdx}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", bIdx);
+                        setDraggedIdx(bIdx);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedIdx(null);
+                        setDragOverIdx(null);
+                        setDraggableIdx(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (draggedIdx !== null && draggedIdx !== bIdx) {
+                          setDragOverIdx(bIdx);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        setDragOverIdx(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                        if (!isNaN(fromIdx) && fromIdx !== bIdx) {
+                          handleMoveVisualBlockToPosition(fromIdx, bIdx);
+                        }
+                        setDragOverIdx(null);
+                        setDraggedIdx(null);
+                        setDraggableIdx(null);
+                      }}
                     >
                       <div className="block-card-header">
-                        <div className="block-badge-container">
+                        <div className="block-badge-container" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div 
+                            style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#9ca3af', paddingRight: '2px' }}
+                            onMouseDown={() => setDraggableIdx(bIdx)}
+                            onMouseUp={() => setDraggableIdx(null)}
+                            title="Arrastra desde aquí para reordenar"
+                          >
+                            <GripVertical size={14} />
+                          </div>
                           <span className="block-type-select block-select-portada" style={{ fontSize: '10px', fontWeight: 'bold' }}>
                             Portada Principal (Página 1)
                           </span>
@@ -777,17 +859,48 @@ export default function DraftInput({
                     <div 
                       key={`block-${bIdx}`} 
                       className="block-card" 
-                      style={{ 
-                        borderLeft: '4px solid #10b981',
-                        boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
-                        transform: isSelected ? 'scale(1.002)' : 'none',
-                        transition: 'all 0.2s ease',
-                        outline: 'none'
-                      }}
+                      style={getDragDropStyle(bIdx, isSelected, '4px solid #10b981')}
                       onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                      draggable={draggableIdx === bIdx}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", bIdx);
+                        setDraggedIdx(bIdx);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedIdx(null);
+                        setDragOverIdx(null);
+                        setDraggableIdx(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (draggedIdx !== null && draggedIdx !== bIdx) {
+                          setDragOverIdx(bIdx);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        setDragOverIdx(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                        if (!isNaN(fromIdx) && fromIdx !== bIdx) {
+                          handleMoveVisualBlockToPosition(fromIdx, bIdx);
+                        }
+                        setDragOverIdx(null);
+                        setDraggedIdx(null);
+                        setDraggableIdx(null);
+                      }}
                     >
                       <div className="block-card-header">
-                        <div className="block-badge-container">
+                        <div className="block-badge-container" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div 
+                            style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#9ca3af', paddingRight: '2px' }}
+                            onMouseDown={() => setDraggableIdx(bIdx)}
+                            onMouseUp={() => setDraggableIdx(null)}
+                            title="Arrastra desde aquí para reordenar"
+                          >
+                            <GripVertical size={14} />
+                          </div>
                           <select
                             className="block-type-select block-select-figura"
                             value={block.tipo}
@@ -875,17 +988,48 @@ export default function DraftInput({
                     <div 
                       key={`block-${bIdx}`} 
                       className="block-card" 
-                      style={{ 
-                        borderLeft: '4px solid #0d9488',
-                        boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
-                        transform: isSelected ? 'scale(1.002)' : 'none',
-                        transition: 'all 0.2s ease',
-                        outline: 'none'
-                      }}
+                      style={getDragDropStyle(bIdx, isSelected, '4px solid #0d9488')}
                       onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                      draggable={draggableIdx === bIdx}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", bIdx);
+                        setDraggedIdx(bIdx);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedIdx(null);
+                        setDragOverIdx(null);
+                        setDraggableIdx(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (draggedIdx !== null && draggedIdx !== bIdx) {
+                          setDragOverIdx(bIdx);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        setDragOverIdx(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                        if (!isNaN(fromIdx) && fromIdx !== bIdx) {
+                          handleMoveVisualBlockToPosition(fromIdx, bIdx);
+                        }
+                        setDragOverIdx(null);
+                        setDraggedIdx(null);
+                        setDraggableIdx(null);
+                      }}
                     >
                       <div className="block-card-header">
-                        <div className="block-badge-container">
+                        <div className="block-badge-container" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div 
+                            style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#9ca3af', paddingRight: '2px' }}
+                            onMouseDown={() => setDraggableIdx(bIdx)}
+                            onMouseUp={() => setDraggableIdx(null)}
+                            title="Arrastra desde aquí para reordenar"
+                          >
+                            <GripVertical size={14} />
+                          </div>
                           <select
                             className="block-type-select block-select-tabla"
                             value={block.tipo}
@@ -976,18 +1120,51 @@ export default function DraftInput({
                     <div 
                       key={`block-${bIdx}`} 
                       className="block-card" 
-                      style={{ 
-                        borderLeft: '4px solid #f59e0b', 
-                        background: '#fffbeb',
-                        boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
-                        transform: isSelected ? 'scale(1.002)' : 'none',
-                        transition: 'all 0.2s ease',
-                        outline: 'none'
+                      style={{
+                        ...getDragDropStyle(bIdx, isSelected, '4px solid #f59e0b'),
+                        background: '#fffbeb'
                       }}
                       onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                      draggable={draggableIdx === bIdx}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", bIdx);
+                        setDraggedIdx(bIdx);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedIdx(null);
+                        setDragOverIdx(null);
+                        setDraggableIdx(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (draggedIdx !== null && draggedIdx !== bIdx) {
+                          setDragOverIdx(bIdx);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        setDragOverIdx(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                        if (!isNaN(fromIdx) && fromIdx !== bIdx) {
+                          handleMoveVisualBlockToPosition(fromIdx, bIdx);
+                        }
+                        setDragOverIdx(null);
+                        setDraggedIdx(null);
+                        setDraggableIdx(null);
+                      }}
                     >
                       <div className="block-card-header">
-                        <div className="block-badge-container">
+                        <div className="block-badge-container" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div 
+                            style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#9ca3af', paddingRight: '2px' }}
+                            onMouseDown={() => setDraggableIdx(bIdx)}
+                            onMouseUp={() => setDraggableIdx(null)}
+                            title="Arrastra desde aquí para reordenar"
+                          >
+                            <GripVertical size={14} style={{ color: '#d97706' }} />
+                          </div>
                           <span style={{ fontSize: '10px', fontWeight: 'bold', background: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>
                             Índice de Contenidos (Auto)
                           </span>
@@ -1068,17 +1245,48 @@ export default function DraftInput({
                   <div 
                     key={`block-${bIdx}`} 
                     className="block-card" 
-                    style={{ 
-                      borderLeft: `4px solid ${borderColors[block.tipo] || '#cbd5e1'}`,
-                      boxShadow: isSelected ? '0 0 0 2px var(--accent-blue), 0 8px 24px rgba(43, 87, 154, 0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
-                      transform: isSelected ? 'scale(1.002)' : 'none',
-                      transition: 'all 0.2s ease',
-                      outline: 'none'
-                    }}
+                    style={getDragDropStyle(bIdx, isSelected, `4px solid ${borderColors[block.tipo] || '#cbd5e1'}`)}
                     onClick={() => setSelectedVisualBlockIdx(bIdx)}
+                    draggable={draggableIdx === bIdx}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", bIdx);
+                      setDraggedIdx(bIdx);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedIdx(null);
+                      setDragOverIdx(null);
+                      setDraggableIdx(null);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (draggedIdx !== null && draggedIdx !== bIdx) {
+                        setDragOverIdx(bIdx);
+                      }
+                    }}
+                    onDragLeave={() => {
+                      setDragOverIdx(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const fromIdx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                      if (!isNaN(fromIdx) && fromIdx !== bIdx) {
+                        handleMoveVisualBlockToPosition(fromIdx, bIdx);
+                      }
+                      setDragOverIdx(null);
+                      setDraggedIdx(null);
+                      setDraggableIdx(null);
+                    }}
                   >
                     <div className="block-card-header">
-                      <div className="block-badge-container">
+                      <div className="block-badge-container" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div 
+                          style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#9ca3af', paddingRight: '2px' }}
+                          onMouseDown={() => setDraggableIdx(bIdx)}
+                          onMouseUp={() => setDraggableIdx(null)}
+                          title="Arrastra desde aquí para reordenar"
+                        >
+                          <GripVertical size={14} />
+                        </div>
                         <select
                           className={`block-type-select ${selectClassMap[block.tipo] || 'block-select-parrafo'}`}
                           value={block.tipo}

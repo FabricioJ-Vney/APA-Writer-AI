@@ -39,8 +39,6 @@ export default function DraftInput({
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
 
-  // Modo de edición: 'bloques' (Visual Notion-style) o 'texto' (Clásico textarea)
-  const [editorMode, setEditorMode] = useState('bloques');
   const [isSettingsCollapsed, setIsSettingsCollapsed] = useState(false);
 
   // --- SERIALIZADOR DE ELEMENTOS A TEXTO CRUDO ---
@@ -261,14 +259,9 @@ export default function DraftInput({
         [imgId]: base64Data
       }));
 
-      if (editorMode === 'bloques') {
-        const nuevoEl = { tipo: 'figura', titulo: 'Título de la figura', nota: 'Nota. Descripción.', base64: imgId };
-        const nuevosElementos = [...elementosFormateados, nuevoEl];
-        setDraftText(serializarElementosATexto(nuevosElementos));
-      } else {
-        const figuraTag = `\n[Figura] Título descriptivo de tu gráfica o imagen | Nota. Aquí se describe detalladamente lo que muestra la figura. | ${imgId}\n`;
-        insertMarker(figuraTag);
-      }
+      const nuevoEl = { tipo: 'figura', titulo: 'Título de la figura', nota: 'Nota. Descripción.', base64: imgId };
+      const nuevosElementos = [...elementosFormateados, nuevoEl];
+      setDraftText(serializarElementosATexto(nuevosElementos));
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -276,34 +269,12 @@ export default function DraftInput({
 
   // Insertar plantilla de tabla APA 7
   const handleInsertTable = () => {
-    if (editorMode === 'bloques') {
-      handleAddBlockType('tabla');
-    } else {
-      const plantillaTabla = `\n[Tabla]
-Comparativa de Resultados de Muestra
-Variable | Grupo de Control | Grupo de Intervención
-Ansiedad Previa | 6.54 | 6.58
-Ansiedad Posterior | 6.42 | 3.10
-Nota. Datos simulados del estudio piloto (N = 50).\n`;
-      insertMarker(plantillaTabla);
-    }
+    handleAddBlockType('tabla');
   };
 
   // Insertar plantilla de portada APA 7 delimitada
   const handleInsertPortada = () => {
-    if (editorMode === 'bloques') {
-      handleAddBlockType('portada');
-    } else {
-      const plantillaPortada = `[Portada]
-TÍTULO DE TU TRABAJO ACADÉMICO
-Nombre Completo del Autor
-Facultad y Universidad de Procedencia
-Curso: Nombre de la Asignatura
-Nombre del Profesor o Asesor
-Fecha de Entrega
-[Fin Portada]\n`;
-      insertMarker(plantillaPortada);
-    }
+    handleAddBlockType('portada');
   };
 
   // Importar archivo de texto (.txt) o documento Word (.docx)
@@ -419,61 +390,7 @@ Fecha de Entrega
         </div>
       </div>
 
-      <div className="draft-container">
-        {/* Toggle de Modo de Editor (Bloques / Texto) */}
-        <div className="editor-mode-toggle" style={{ display: 'flex', gap: '8px', padding: '6px', background: '#f5f3f0', border: '1px solid var(--border-subtle)', borderRadius: '8px', marginBottom: '8px' }}>
-          <button
-            type="button"
-            className={`btn-mode-toggle ${editorMode === 'bloques' ? 'active' : ''}`}
-            onClick={() => setEditorMode('bloques')}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: editorMode === 'bloques' ? '1px solid var(--accent-blue)' : '1px solid transparent',
-              background: editorMode === 'bloques' ? 'white' : 'transparent',
-              color: editorMode === 'bloques' ? 'var(--accent-blue)' : 'var(--color-text-muted)',
-              fontWeight: '700',
-              cursor: 'pointer',
-              fontSize: '12px',
-              transition: 'all 0.2s',
-              boxShadow: editorMode === 'bloques' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-            }}
-          >
-            <LayoutGrid size={14} />
-            <span>Editor Visual (Bloques)</span>
-          </button>
-          <button
-            type="button"
-            className={`btn-mode-toggle ${editorMode === 'texto' ? 'active' : ''}`}
-            onClick={() => setEditorMode('texto')}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: editorMode === 'texto' ? '1px solid var(--accent-blue)' : '1px solid transparent',
-              background: editorMode === 'texto' ? 'white' : 'transparent',
-              color: editorMode === 'texto' ? 'var(--accent-blue)' : 'var(--color-text-muted)',
-              fontWeight: '700',
-              cursor: 'pointer',
-              fontSize: '12px',
-              transition: 'all 0.2s',
-              boxShadow: editorMode === 'texto' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-            }}
-          >
-            <AlignLeft size={14} />
-            <span>Editor de Código (Texto)</span>
-          </button>
-        </div>
-
+      <div className="draft-container" style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '12px' }}>
         {/* Panel de Configuración y Herramientas Colapsable */}
         <div className="collapsible-settings-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: '#fcfbfa', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px 14px', marginBottom: '8px', transition: 'all 0.25s' }}>
           <div 
@@ -496,68 +413,68 @@ Fecha de Entrega
           {!isSettingsCollapsed && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px', animation: 'slideDown 0.2s ease-out' }}>
               {/* Guía de Marcadores (Haz clic para insertar) */}
-              <div className="draft-instructions" style={{ padding: '10px', background: 'white', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <div className="instructions-header" style={{ marginBottom: '6px' }}>
-                  <HelpCircle size={12} className="icon-blue" />
-                  <span style={{ fontSize: '10px', fontWeight: '600' }}>Guía de Marcadores (Haz clic para insertar):</span>
+              <div className="draft-instructions">
+                <div className="instructions-header">
+                  <HelpCircle size={14} className="icon-blue" />
+                  <span>Guía de Marcadores (Haz clic para insertar):</span>
                 </div>
-                <div className="markers-grid" style={{ gap: '6px' }}>
-                  <button type="button" className="marker-tag" onClick={handleInsertPortada} style={{ border: '1px solid rgba(43, 87, 154, 0.3)', background: 'rgba(43, 87, 154, 0.05)', color: 'var(--accent-blue)', fontSize: '10px', padding: '3px 8px' }}>
-                    <Plus size={10} /> + Portada
+                <div className="markers-grid">
+                  <button type="button" className="marker-tag" onClick={handleInsertPortada} style={{ border: '1px solid rgba(43, 87, 154, 0.3)', background: 'rgba(43, 87, 154, 0.05)', color: 'var(--accent-blue)' }}>
+                    <Plus size={12} /> + Portada
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Título] ')} style={{ fontSize: '10px', padding: '3px 8px' }}>
-                    <Plus size={10} /> [Título]
+                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Título] ')}>
+                    <Plus size={12} /> [Título]
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Subtítulo] ')} style={{ fontSize: '10px', padding: '3px 8px' }}>
-                    <Plus size={10} /> [Subtítulo]
+                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Subtítulo] ')}>
+                    <Plus size={12} /> [Subtítulo]
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Subsección] ')} style={{ fontSize: '10px', padding: '3px 8px' }}>
-                    <Plus size={10} /> [Subsección]
+                  <button type="button" className="marker-tag" onClick={() => insertMarker('[Subsección] ')}>
+                    <Plus size={12} /> [Subsección]
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Párrafo] ')} style={{ fontSize: '10px', padding: '3px 8px' }}>
-                    <Plus size={10} /> [Párrafo]
+                  <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Párrafo] ')}>
+                    <Plus size={12} /> [Párrafo]
                   </button>
-                  <button type="button" className="marker-tag" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981', fontSize: '10px', padding: '3px 8px' }} onClick={() => imageInputRef.current.click()}>
-                    <Plus size={10} /> + Figura
+                  <button type="button" className="marker-tag" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981' }} onClick={() => imageInputRef.current.click()}>
+                    <Plus size={12} /> + Figura
                   </button>
-                  <button type="button" className="marker-tag" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981', fontSize: '10px', padding: '3px 8px' }} onClick={handleInsertTable}>
-                    <Plus size={10} /> + Tabla
+                  <button type="button" className="marker-tag" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.05)', color: '#10b981' }} onClick={handleInsertTable}>
+                    <Plus size={12} /> + Tabla
                   </button>
-                  <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Referencias]\n')} style={{ fontSize: '10px', padding: '3px 8px' }}>
-                    <Plus size={10} /> [Referencias]
+                  <button type="button" className="marker-tag" onClick={() => insertMarker('\n[Referencias]\n')}>
+                    <Plus size={12} /> [Referencias]
                   </button>
                 </div>
               </div>
 
               {/* Toggle de Índice Automático */}
-              <div className="toc-toggle-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '8px 12px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--color-text-main)' }}>Incluir Índice de Contenidos</span>
-                  <span style={{ fontSize: '9px', color: 'var(--color-text-muted)' }}>Crea una Tabla de Contenidos basada en tus títulos.</span>
+              <div className="toc-toggle-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fcfbfa', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '10px 14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text-main)' }}>Incluir Índice de Contenidos</span>
+                  <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Crea una Tabla de Contenidos basada en tus títulos.</span>
                 </div>
-                <label className="switch-premium" style={{ position: 'relative', display: 'inline-block', width: '36px', height: '18px' }}>
+                <label className="switch-premium" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '20px' }}>
                   <input 
                     type="checkbox" 
                     checked={showTOC} 
                     onChange={(e) => setShowTOC(e.target.checked)}
                     style={{ opacity: 0, width: 0, height: 0 }}
                   />
-                  <span className="slider-premium" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: showTOC ? 'var(--accent-blue)' : '#ccc', transition: '0.4s', borderRadius: '18px' }}>
-                    <span style={{ position: 'absolute', content: '""', height: '12px', width: '12px', left: showTOC ? '20px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '0.4s', borderRadius: '50%' }}></span>
+                  <span className="slider-premium" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: showTOC ? 'var(--accent-blue)' : '#ccc', transition: '0.4s', borderRadius: '20px' }}>
+                    <span style={{ position: 'absolute', content: '""', height: '14px', width: '14px', left: showTOC ? '22px' : '4px', bottom: '3px', backgroundColor: 'white', transition: '0.4s', borderRadius: '50%' }}></span>
                   </span>
                 </label>
               </div>
 
               {/* Historial de borradores guardados (si hay) con botón Eliminar */}
               {documentos && documentos.length > 0 && (
-                <div className="documentos-guardados-bar" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '8px 12px' }}>
-                  <label htmlFor="select-doc" className="doc-select-label" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--accent-blue)', whiteSpace: 'nowrap' }}>Borradores:</label>
+                <div className="documentos-guardados-bar" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label htmlFor="select-doc" className="doc-select-label">Borradores en Supabase:</label>
                   <select
                     id="select-doc"
                     className="doc-select"
                     value={selectedDocId || ''}
                     onChange={(e) => onSelectDocument(e.target.value)}
-                    style={{ flex: 1, padding: '4px', fontSize: '11px', border: '1px solid #ddd', borderRadius: '4px' }}
+                    style={{ flex: 1 }}
                   >
                     <option value="">-- Documento Nuevo / Local --</option>
                     {documentos.map((doc) => (
@@ -571,10 +488,10 @@ Fecha de Entrega
                       type="button"
                       className="btn btn-secondary btn-icon icon-danger"
                       onClick={onDeleteDocument}
-                      style={{ padding: '4px 8px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '10px' }}
+                      style={{ padding: '6px 10px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       title="Eliminar borrador de Supabase"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={14} />
                       <span>Eliminar</span>
                     </button>
                   )}

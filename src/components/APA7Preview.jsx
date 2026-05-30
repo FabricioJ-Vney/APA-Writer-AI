@@ -697,6 +697,161 @@ export default function APA7Preview({
                   );
                 }
 
+                // Índice de Contenidos (Auto)
+                if (el.tipo === 'indice') {
+                  if (!showTOC) return null;
+                  return (
+                    <div key={i} className="paper-toc-section" style={{ textIndent: 0, paddingLeft: 0, marginBottom: '2em' }}>
+                      <div className="paper-page-break-indicator" style={{ marginTop: '1em', marginBottom: '2em' }}>
+                        <span>[Salto de Página Académico - Inicio de Índice]</span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2em', position: 'relative' }}>
+                        <h1 className="paper-heading-1" style={{ margin: 0, width: '100%', textAlign: 'center' }}>
+                          Contenidos
+                        </h1>
+                      </div>
+                      {elementos.filter(item => ['titulo1', 'titulo2', 'titulo3'].includes(item.tipo)).length === 0 ? (
+                        <div style={{ fontStyle: 'italic', fontSize: '10pt', color: 'var(--color-text-muted)', textAlign: 'center', margin: '20px 0' }}>
+                          [Los títulos que agregues en el editor aparecerán automáticamente en este índice]
+                        </div>
+                      ) : (
+                        elementos.filter(item => ['titulo1', 'titulo2', 'titulo3'].includes(item.tipo)).map((heading, hIdx) => {
+                          let indent = '0cm';
+                          let weight = 'normal';
+                          let style = 'normal';
+                          
+                          if (heading.tipo === 'titulo1') {
+                            indent = '0cm';
+                            weight = 'bold';
+                          } else if (heading.tipo === 'titulo2') {
+                            indent = '0.8cm';
+                            weight = 'normal';
+                          } else if (heading.tipo === 'titulo3') {
+                            indent = '1.6cm';
+                            style = 'italic';
+                          }
+
+                          const pageNum = headingPages[heading.texto] || 3;
+
+                          return (
+                            <div 
+                              key={hIdx} 
+                              className="paper-toc-row" 
+                              style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'flex-end', 
+                                paddingLeft: indent,
+                                fontWeight: weight,
+                                fontStyle: style,
+                                textIndent: 0,
+                                marginBottom: '6px',
+                                fontSize: '10.5pt'
+                              }}
+                            >
+                              <span className="toc-title" style={{ background: 'white', paddingRight: '4px', zIndex: 2 }}>
+                                {heading.texto}
+                              </span>
+                              <span className="toc-dots" style={{ 
+                                flex: 1, 
+                                borderBottom: '2px dotted #000000', 
+                                margin: '0 6px', 
+                                position: 'relative', 
+                                bottom: '4px', 
+                                zIndex: 1 
+                              }}></span>
+                              <span className="toc-page" style={{ background: 'white', paddingLeft: '4px', zIndex: 2 }}>
+                                {pageNum}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                      
+                      {/* --- LISTA DE TABLAS (APA 7) --- */}
+                      {listTablas.length > 0 && (
+                        <div style={{ marginTop: '2em' }}>
+                          <h2 style={{ fontSize: '11pt', fontWeight: 'bold', borderBottom: '1px solid #ddd', paddingBottom: '4px', marginBottom: '8px', textIndent: 0 }}>Lista de Tablas</h2>
+                          {listTablas.map((tableItem) => (
+                            <div 
+                              key={tableItem.numero} 
+                              className="paper-toc-row" 
+                              style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'flex-end', 
+                                paddingLeft: '0cm',
+                                fontWeight: 'normal',
+                                textIndent: 0,
+                                marginBottom: '6px',
+                                fontSize: '10.5pt'
+                              }}
+                            >
+                              <span className="toc-title" style={{ background: 'white', paddingRight: '4px', zIndex: 2 }}>
+                                Tabla {tableItem.numero}. {tableItem.titulo}
+                              </span>
+                              <span className="toc-dots" style={{ 
+                                flex: 1, 
+                                borderBottom: '2px dotted #000000', 
+                                margin: '0 6px', 
+                                position: 'relative', 
+                                bottom: '4px', 
+                                zIndex: 1 
+                              }}></span>
+                              <span className="toc-page" style={{ background: 'white', paddingLeft: '4px', zIndex: 2 }}>
+                                {tableItem.pagina}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* --- LISTA DE FIGURAS (APA 7) --- */}
+                      {listFiguras.length > 0 && (
+                        <div style={{ marginTop: '2em' }}>
+                          <h2 style={{ fontSize: '11pt', fontWeight: 'bold', borderBottom: '1px solid #ddd', paddingBottom: '4px', marginBottom: '8px', textIndent: 0 }}>Lista de Figuras</h2>
+                          {listFiguras.map((figureItem) => (
+                            <div 
+                              key={figureItem.numero} 
+                              className="paper-toc-row" 
+                              style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'flex-end', 
+                                paddingLeft: '0cm',
+                                fontWeight: 'normal',
+                                textIndent: 0,
+                                marginBottom: '6px',
+                                fontSize: '10.5pt'
+                              }}
+                            >
+                              <span className="toc-title" style={{ background: 'white', paddingRight: '4px', zIndex: 2 }}>
+                                Figura {figureItem.numero}. {figureItem.titulo}
+                              </span>
+                              <span className="toc-dots" style={{ 
+                                flex: 1, 
+                                borderBottom: '2px dotted #000000', 
+                                margin: '0 6px', 
+                                position: 'relative', 
+                                bottom: '4px', 
+                                zIndex: 1 
+                              }}></span>
+                              <span className="toc-page" style={{ background: 'white', paddingLeft: '4px', zIndex: 2 }}>
+                                {figureItem.pagina}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="paper-page-break-indicator" style={{ marginTop: '2em', marginBottom: '1em' }}>
+                        <span>[Salto de Página Académico - Fin de Índice]</span>
+                      </div>
+                    </div>
+                  );
+                }
+
                 // Figuras (Imágenes/Gráficos APA 7)
                 if (el.tipo === 'figura') {
                   figureCounter++;
